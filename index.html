@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Master Plan: Computer Science Foundations & Algorithmic Problem Solving</title>
+  <link rel="stylesheet" href="./assets/style.css">
+  <style>
+    .hero {
+      margin-bottom: 2.5rem;
+    }
+    .hero-tagline {
+      font-size: 1.25rem;
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+      font-weight: 400;
+    }
+    .protocol-box {
+      border: 2px solid var(--accent);
+      background: var(--bg-card);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.8rem 0;
+    }
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+    }
+    .check-item input[type="checkbox"] {
+      margin-top: 0.3rem;
+      accent-color: var(--accent);
+      width: 1.1rem;
+      height: 1.1rem;
+      cursor: pointer;
+    }
+    .interactive-halving {
+      background: var(--bg-secondary);
+      border: 1px dashed var(--border-strong);
+      border-radius: 8px;
+      padding: 1.1rem 1.25rem;
+      margin: 1rem 0;
+      font-family: var(--font-sans);
+    }
+    .halving-steps {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 0.5rem;
+    }
+    .halving-node {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+    }
+    .halving-arrow {
+      color: var(--text-muted);
+    }
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: var(--bg-secondary);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+    .progress-bar {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .memory-block {
+      display: flex;
+      gap: 4px;
+      margin: 0.8rem 0;
+      overflow-x: auto;
+    }
+    .memory-cell {
+      border: 1px solid var(--border-strong);
+      background: var(--bg-card);
+      padding: 0.5rem 0.75rem;
+      border-radius: 6px;
+      text-align: center;
+      font-family: var(--font-mono);
+      min-width: 85px;
+    }
+    .memory-cell .addr {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      display: block;
+    }
+    .memory-cell .val {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .memory-cell .idx {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+      <span class="badge primary">CS Major Curriculum</span>
+      <span class="badge success">From Physical Hardware to Algorithms</span>
+    </div>
+    <h1>CS Foundations & Algorithmic Problem Solving</h1>
+    <p class="hero-tagline">
+      A complete, zero-assumption computer science foundation: physical RAM architecture, pointer arithmetic, asymptotic math, logarithmic scaling, and verbal interview execution before writing a single line of LeetCode.
+    </p>
+  </header>
+
+  <!-- Section 1: The Core Question Answered -->
+  <section class="protocol-box">
+    <div class="card-header">
+      <h2 style="margin: 0; font-size: 1.35rem;">Technical Coding Interview Protocol (2026 / 2027)</h2>
+      <span class="badge success">Industry Standard</span>
+    </div>
+    <p style="margin-top: 0.75rem;">
+      <strong>The Core Question:</strong> <em>"Do I verbally present brute force and then only write code of the optimal solution?"</em>
+    </p>
+    <div class="callout success" style="margin-top: 0.5rem;">
+      <div class="callout-title">The Absolute Consensus</div>
+      <strong>Yes. In 95% of technical coding interviews, you verbally walk through brute force and write code only for the optimal solution.</strong>
+      Writing optimal code immediately within 10 seconds is considered an active red flag: it signals rote memorization rather than systematic engineering reasoning.
+    </div>
+
+    <div class="timeline" style="margin-top: 1.5rem;">
+      <div class="timeline-step">
+        <div class="timeline-marker">1</div>
+        <div class="timeline-content">
+          <strong>Clarify & Validate Inputs (Minutes 0 – 5)</strong>
+          <p style="font-size: 0.92rem; color: var(--text-secondary); margin: 0.25rem 0 0 0;">
+            Ask about bounds, empty inputs, duplicate elements, negative values, and whether memory or execution speed is the primary optimization target.
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-step">
+        <div class="timeline-marker">2</div>
+        <div class="timeline-content">
+          <strong>State the Brute-Force Baseline (Minutes 5 – 6)</strong>
+          <p style="font-size: 0.92rem; color: var(--text-secondary); margin: 0.25rem 0 0 0;">
+            <em>"The naive baseline is an exhaustive nested scan comparing all pairs in O(n²) time and O(1) auxiliary space."</em>
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-step">
+        <div class="timeline-marker">3</div>
+        <div class="timeline-content">
+          <strong>Isolate the Bottleneck & Propose Optimal (Minutes 6 – 9)</strong>
+          <p style="font-size: 0.92rem; color: var(--text-secondary); margin: 0.25rem 0 0 0;">
+            <em>"The bottleneck is repeatedly scanning the array to find the complement. We can trade O(n) auxiliary memory in a hash map to get O(1) lookups, dropping overall time to O(n)."</em>
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-step">
+        <div class="timeline-marker">4</div>
+        <div class="timeline-content">
+          <strong>Secure Consensus (Minute 9 – 10)</strong>
+          <p style="font-size: 0.92rem; color: var(--text-secondary); margin: 0.25rem 0 0 0;">
+            Ask: <em>"Does this approach sound good to you, or would you like me to start coding this up?"</em>
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-step">
+        <div class="timeline-marker">5</div>
+        <div class="timeline-content">
+          <strong>Implement Only the Optimal Solution (Minutes 10 – 30)</strong>
+          <p style="font-size: 0.92rem; color: var(--text-secondary); margin: 0.25rem 0 0 0;">
+            Write idiomatic, modular code. (Only code brute force if the interviewer explicitly asks or if you are stuck).
+          </p>
+        </div>
+      </div>
+
+      <div class="timeline-step">
+        <div class="timeline-marker">6</div>
+        <div class="timeline-content">
+          <strong>Dry-Run Line-by-Line with a State Table (Minutes 30 – 45)</strong>
+          <p style="font-size: 0.92rem; color: var(--text-secondary); margin: 0.25rem 0 0 0;">
+            Trace sample inputs and edge cases manually using a tabular walkthrough without relying on a compiler, debugger, or print statements.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 2: Core CS Architecture Pillars -->
+  <section style="margin-top: 3rem;">
+    <h2>Core CS Architecture Pillars (The Physical Machine)</h2>
+    <p style="color: var(--text-secondary);">
+      In CS 101, everything begins with how computer hardware physically executes instructions and allocates memory.
+    </p>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-header">
+          <span class="badge primary">Pillar 1</span>
+        </div>
+        <h3 style="font-size: 1.1rem;">RAM & Pointers</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary);">
+          RAM is an unbroken row of byte addresses. An array is a <strong>contiguous block</strong>. <code>arr[i]</code> is instant ($O(1)$) because the CPU calculates <code>address = base + (i * size)</code> with zero searching.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="badge warning">Pillar 2</span>
+        </div>
+        <h3 style="font-size: 1.1rem;">Stack vs. Heap</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary);">
+          <strong>Stack:</strong> Fixed, blazing-fast memory for function frames and local primitives. Deep recursion risks StackOverflow ($O(d)$ space).<br>
+          <strong>Heap:</strong> Flexible memory for dynamic objects, arrays, and maps ($O(n)$ allocations).
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="badge success">Pillar 3</span>
+        </div>
+        <h3 style="font-size: 1.1rem;">Amortized Resizing</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary);">
+          When a dynamic array (<code>ArrayList</code>) runs out of space, it allocates a double-sized block and copies all $n$ elements ($O(n)$ step). Because it doubles, it happens rarely, making insertion <strong>O(1) amortized</strong>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: Master Syllabus -->
+  <section style="margin-top: 3rem;">
+    <h2>The 5-Lesson Modular Syllabus</h2>
+    <p style="color: var(--text-secondary);">
+      Structured like a rigorous CS department course module: concept $\to$ physical mechanics $\to$ code study (Kotlin / Python / Java) $\to$ verification drill.
+    </p>
+
+    <!-- Lesson 1 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <span class="badge primary">Lesson 01</span>
+          <h3 style="margin-top: 0.4rem;"><a href="./lessons/0001-ram-and-brute-force.html" style="text-decoration: none;">RAM Mechanics, Brute Force & Algorithmic Bottlenecks</a></h3>
+        </div>
+        <a href="./lessons/0001-ram-and-brute-force.html" class="badge success" style="text-decoration: none;">Ready & Live &rarr;</a>
+      </div>
+      <p style="color: var(--text-secondary); font-size: 0.95rem;">
+        How computer memory physically stores contiguous arrays vs. hash tables. Why searching unsorted memory requires linear scans ($O(n)$). Pinpointing the computational bottleneck and understanding the classic trade: trading auxiliary memory for reduced execution time. Includes comprehensive ELI5 street-address analogies.
+      </p>
+      <div style="margin-top: 0.8rem; font-family: var(--font-sans); font-size: 0.88rem;">
+        <strong>Target Outcome:</strong> Deconstruct an unoptimized nested loop, state its $O(n^2)$ bottleneck in 2 sentences, and identify the exact data structure needed to break it.
+      </div>
+    </div>
+
+    <!-- Lesson 2 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <span class="badge primary">Lesson 02</span>
+          <h3 style="margin-top: 0.4rem;"><a href="./lessons/0002-big-o-and-logarithms.html" style="text-decoration: none;">Big O Deconstructed — Asymptotics, Halving (&log; n), & Memory Accounting</a></h3>
+        </div>
+        <a href="./lessons/0002-big-o-and-logarithms.html" class="badge success" style="text-decoration: none;">Ready & Live &rarr;</a>
+      </div>
+      <p style="color: var(--text-secondary); font-size: 0.95rem;">
+        Asymptotic scaling as $n \to \infty$; Big O ($O$), Big Omega ($\Omega$), Big Theta ($\Theta$); demystifying $\log_2 n$ via the halving principle; the hidden costs of built-in standard library methods; Call Stack frames vs. Heap memory accounting. Includes ELI5 bike vs. rocket and cafeteria tray analogies.
+      </p>
+      <div style="margin-top: 0.8rem; font-family: var(--font-sans); font-size: 0.88rem;">
+        <strong>Target Outcome:</strong> Calculate time and auxiliary space for both iterative and recursive code without guessing, and spot hidden $O(n)$ loops in built-in methods.
+      </div>
+    </div>
+
+    <!-- Lesson 3 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <span class="badge primary">Lesson 03</span>
+          <h3 style="margin-top: 0.4rem;"><a href="./lessons/0003-decoding-constraints.html" style="text-decoration: none;">Decoding Constraints — The 10⁷ Rule, CPU Clock Limits & Target Big O</a></h3>
+        </div>
+        <a href="./lessons/0003-decoding-constraints.html" class="badge success" style="text-decoration: none;">Ready & Live &rarr;</a>
+      </div>
+      <p style="color: var(--text-secondary); font-size: 0.95rem;">
+        The execution ceiling of modern CPUs ($10^7$ ops/sec). Reverse-engineering the expected Big O directly from problem bounds ($n \le 20 \implies O(2^n)$, $n \le 10^5 \implies O(n \log n)$); 32-bit integer overflow mechanics. Includes ELI5 chef rush and rolling car odometer analogies.
+      </p>
+      <div style="margin-top: 0.8rem; font-family: var(--font-sans); font-size: 0.88rem;">
+        <strong>Target Outcome:</strong> Inspect any LeetCode problem constraint block and immediately disqualify unviable time complexities.
+      </div>
+    </div>
+
+    <!-- Lesson 4 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <span class="badge primary">Lesson 04</span>
+          <h3 style="margin-top: 0.4rem;"><a href="./lessons/0004-interview-protocol.html" style="text-decoration: none;">The 45-Minute Interview Protocol — Senior Scripts, Validation & Choreography</a></h3>
+        </div>
+        <a href="./lessons/0004-interview-protocol.html" class="badge success" style="text-decoration: none;">Ready & Live &rarr;</a>
+      </div>
+      <p style="color: var(--text-secondary); font-size: 0.95rem;">
+        Stage-by-stage interview choreography. Scripting verbal explanations, asking high-signal clarifying questions, and securing buy-in without awkward silences. Includes ELI5 architect blueprint and car mechanic diagnostic analogies.
+      </p>
+      <div style="margin-top: 0.8rem; font-family: var(--font-sans); font-size: 0.88rem;">
+        <strong>Target Outcome:</strong> Execute an interactive 7-minute opening sequence for an unseen problem under time pressure.
+      </div>
+    </div>
+
+    <!-- Lesson 5 -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <span class="badge primary">Lesson 05</span>
+          <h3 style="margin-top: 0.4rem;"><a href="./lessons/0005-tabular-dry-running.html" style="text-decoration: none;">Tabular Dry-Running, Variable State Tracing & The Edge-Case Gauntlet</a></h3>
+        </div>
+        <a href="./lessons/0005-tabular-dry-running.html" class="badge success" style="text-decoration: none;">Ready & Live &rarr;</a>
+      </div>
+      <p style="color: var(--text-secondary); font-size: 0.95rem;">
+        Constructing execution trace tables on whiteboards. Proving loop invariants mathematically; catching off-by-one errors; running the universal 6-point edge-case gauntlet. Includes ELI5 pre-flight checklist and fence post analogies.
+      </p>
+      <div style="margin-top: 0.8rem; font-family: var(--font-sans); font-size: 0.88rem;">
+        <strong>Target Outcome:</strong> Trace variable states across iterations on paper/markdown and spot logic flaws before hitting 'Run'.
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 4: Deep Foundations Preview -->
+  <section style="margin-top: 3rem;">
+    <h2>Foundational Mental Models</h2>
+
+    <!-- RAM Layout -->
+    <div class="card">
+      <h3>1. Why Array Indexing is $O(1)$ vs. Search $O(n)$</h3>
+      <p style="font-size: 0.95rem; color: var(--text-secondary);">
+        An array of 4-byte integers stored at memory base address <code>0x1000</code>:
+      </p>
+      <div class="memory-block">
+        <div class="memory-cell">
+          <span class="addr">0x1000</span>
+          <span class="val">42</span>
+          <span class="idx">arr[0]</span>
+        </div>
+        <div class="memory-cell">
+          <span class="addr">0x1004</span>
+          <span class="val">19</span>
+          <span class="idx">arr[1]</span>
+        </div>
+        <div class="memory-cell">
+          <span class="addr">0x1008</span>
+          <span class="val">73</span>
+          <span class="idx">arr[2]</span>
+        </div>
+        <div class="memory-cell">
+          <span class="addr">0x100C</span>
+          <span class="val">85</span>
+          <span class="idx">arr[3]</span>
+        </div>
+      </div>
+      <p style="font-size: 0.9rem; color: var(--text-secondary);">
+        <strong>Lookup by index:</strong> To find <code>arr[2]</code>, the CPU calculates: <code>0x1000 + (2 * 4 bytes) = 0x1008</code>. This is one mathematical calculation: <strong>O(1)</strong>.<br>
+        <strong>Search by value:</strong> To check if <code>73</code> is in the array, the CPU has no address formula. It must physically inspect box 0, box 1, box 2 until it finds it: <strong>O(n)</strong>.
+      </p>
+    </div>
+
+    <!-- The Hidden Big O in Standard Libraries -->
+    <div class="card" style="margin-top: 1.5rem;">
+      <h3>2. The "Hidden Big O" in Built-in Standard Methods</h3>
+      <p style="font-size: 0.92rem; color: var(--text-secondary);">
+        Never assume a one-liner is free. Here is what runs under the hood:
+      </p>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Language</th>
+              <th>Common Operation</th>
+              <th>Actual Complexity</th>
+              <th>Why it takes time</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Kotlin</td>
+              <td><code>list.contains(x)</code></td>
+              <td><strong>O(n)</strong></td>
+              <td>Performs a linear scan through the entire list from index 0.</td>
+            </tr>
+            <tr>
+              <td>Kotlin / Java</td>
+              <td><code>list.removeAt(0)</code></td>
+              <td><strong>O(n)</strong></td>
+              <td>Must physically shift all remaining $n-1$ elements left by one slot in RAM.</td>
+            </tr>
+            <tr>
+              <td>Python</td>
+              <td><code>x in my_list</code></td>
+              <td><strong>O(n)</strong></td>
+              <td>Linear scan through elements until match or end.</td>
+            </tr>
+            <tr>
+              <td>Kotlin / Python</td>
+              <td><code>str += char</code> (in a loop)</td>
+              <td><strong>O(n²) total</strong></td>
+              <td>Strings are immutable! Each append copies the entire string into new memory.</td>
+            </tr>
+            <tr>
+              <td>Kotlin / Java</td>
+              <td><code>map.containsKey(x)</code></td>
+              <td><strong>O(1) average</strong></td>
+              <td>Hashes key to directly compute bucket index without scanning.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Logarithms Explained -->
+    <div class="card" style="margin-top: 1.5rem;">
+      <h3>3. Demystifying the Logarithm: The "Halving Game"</h3>
+      <p>
+        If exponential growth is <em>repeated doubling</em> ($2 \times 2 \times 2 = 8$), then a logarithm is the exact inverse: <em>repeated halving</em> until you reach 1 ($8 \to 4 \to 2 \to 1 = 3 \text{ cuts}$).
+      </p>
+      <div class="interactive-halving">
+        <div style="font-weight: 600; margin-bottom: 0.3rem;">Example: $n = 16$ elements (Binary Search)</div>
+        <div class="halving-steps">
+          <span class="halving-node">16 items</span>
+          <span class="halving-arrow">&rarr; cut 1 &rarr;</span>
+          <span class="halving-node">8 items</span>
+          <span class="halving-arrow">&rarr; cut 2 &rarr;</span>
+          <span class="halving-node">4 items</span>
+          <span class="halving-arrow">&rarr; cut 3 &rarr;</span>
+          <span class="halving-node">2 items</span>
+          <span class="halving-arrow">&rarr; cut 4 &rarr;</span>
+          <span class="halving-node">1 item &check;</span>
+        </div>
+        <p style="margin-top: 0.75rem; font-size: 0.9rem; color: var(--text-secondary);">
+          It takes exactly <strong>4 cuts</strong> to reduce 16 items to 1. Because $2^4 = 16$, $\log_2(16) = 4$.<br>
+          For $1,000,000$ items, it takes only <strong>20 cuts</strong>! That is why $O(\log n)$ is virtually as fast as $O(1)$.
+        </p>
+      </div>
+    </div>
+
+    <!-- The 10^7 Operations Rule -->
+    <div class="card" style="margin-top: 1.5rem;">
+      <h3>4. The $10^7$ Rule: Reverse-Engineering Constraints</h3>
+      <p style="font-size: 0.95rem; color: var(--text-secondary);">
+        Modern CPUs in competitive platforms and online judges process roughly $10^7$ to $10^8$ operations per second. If your algorithm exceeds $10^7$ operations, you will trigger <strong>Time Limit Exceeded (TLE)</strong>.
+      </p>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Constraint ($n$)</th>
+              <th>Target Big O</th>
+              <th>Common Acceptable Patterns</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>n &le; 20</code></td>
+              <td>$O(2^n)$ or $O(n!)$</td>
+              <td>Backtracking, Subsets, Permutations</td>
+            </tr>
+            <tr>
+              <td><code>n &le; 1,000</code></td>
+              <td>$O(n^2)$</td>
+              <td>Nested loops, 2D Dynamic Programming</td>
+            </tr>
+            <tr>
+              <td><code>n &le; 100,000 (10⁵)</code></td>
+              <td>$O(n \log n)$ or $O(n)$</td>
+              <td>Sorting, Two Pointers, Sliding Window, Hash Table</td>
+            </tr>
+            <tr>
+              <td><code>n &ge; 10⁹</code></td>
+              <td>$O(\log n)$ or $O(1)$</td>
+              <td>Binary Search, Mathematical Formulas</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Polyglot Implementation Comparison -->
+    <div class="card" style="margin-top: 1.5rem;">
+      <h3>5. Polyglot Code Preview: Two Sum (Hash Table Optimization)</h3>
+      <p style="font-size: 0.92rem; color: var(--text-secondary);">
+        Primary: <strong>Kotlin</strong>. Reference: <strong>Python</strong> & <strong>Java</strong>. Notice the identical asymptotic footprint: $O(n)$ time, $O(n)$ space.
+      </p>
+
+      <div class="code-tabs">
+        <div class="tab-nav">
+          <button class="tab-btn active" onclick="switchTab(event, 'tab-kotlin')">Kotlin (Primary)</button>
+          <button class="tab-btn" onclick="switchTab(event, 'tab-python')">Python</button>
+          <button class="tab-btn" onclick="switchTab(event, 'tab-java')">Java</button>
+        </div>
+
+        <div id="tab-kotlin" class="tab-pane active">
+<pre><code>class Solution {
+    fun twoSum(nums: IntArray, target: Int): IntArray {
+        // Map value -> index to achieve O(1) complement lookup
+        val seen = HashMap&lt;Int, Int&gt;()
+
+        for (i in nums.indices) {
+            val complement = target - nums[i]
+            if (seen.containsKey(complement)) {
+                return intArrayOf(seen[complement]!!, i)
+            }
+            seen[nums[i]] = i
+        }
+        return intArrayOf()
+    }
+}</code></pre>
+        </div>
+
+        <div id="tab-python" class="tab-pane">
+<pre><code>class Solution:
+    def twoSum(self, nums: list[int], target: int) -> list[int]:
+        # Dict value -> index for O(1) complement lookup
+        seen = {}
+        for i, num in enumerate(nums):
+            complement = target - num
+            if complement in seen:
+                return [seen[complement], i]
+            seen[num] = i
+        return []</code></pre>
+        </div>
+
+        <div id="tab-java" class="tab-pane">
+<pre><code>import java.util.HashMap;
+import java.util.Map;
+
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        // Map value -> index for O(1) complement lookup
+        Map&lt;Integer, Integer&gt; seen = new HashMap&lt;&gt;();
+        for (int i = 0; i &lt; nums.length; i++) {
+            int complement = target - nums[i];
+            if (seen.containsKey(complement)) {
+                return new int[] { seen.get(complement), i };
+            }
+            seen.put(nums[i], i);
+        }
+        return new int[0];
+    }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Readiness Checklist -->
+  <section class="card" style="margin-top: 3rem;">
+    <h3>Foundations Readiness Checklist</h3>
+    <p style="font-size: 0.92rem; color: var(--text-secondary);">
+      Check off items as we progress through the curriculum.
+    </p>
+    <div style="margin-top: 1rem;">
+      <div class="check-item">
+        <input type="checkbox" id="c1" onchange="updateProgress()">
+        <label for="c1">I understand why jumping straight to code without stating brute force raises suspicion in interviews.</label>
+      </div>
+      <div class="check-item">
+        <input type="checkbox" id="c2" onchange="updateProgress()">
+        <label for="c2">I understand why array indexing <code>arr[i]</code> is $O(1)$ while array searching is $O(n)$ due to RAM layout.</label>
+      </div>
+      <div class="check-item">
+        <input type="checkbox" id="c3" onchange="updateProgress()">
+        <label for="c3">I know that built-in methods like <code>list.contains()</code> or <code>removeAt(0)</code> hide $O(n)$ loops.</label>
+      </div>
+      <div class="check-item">
+        <input type="checkbox" id="c4" onchange="updateProgress()">
+        <label for="c4">I can explain why halving a search space creates an $O(\log n)$ runtime.</label>
+      </div>
+      <div class="check-item">
+        <input type="checkbox" id="c5" onchange="updateProgress()">
+        <label for="c5">I know the difference between Auxiliary Space (scratchpad) and Total Space (including inputs/outputs).</label>
+      </div>
+      <div class="check-item">
+        <input type="checkbox" id="c6" onchange="updateProgress()">
+        <label for="c6">I can use the $10^7$ operations rule to eliminate disqualified Big O bounds from input constraints.</label>
+      </div>
+      <div class="check-item">
+        <input type="checkbox" id="c7" onchange="updateProgress()">
+        <label for="c7">I can construct an execution trace table to test pointer states before submitting code.</label>
+      </div>
+    </div>
+    <div style="margin-top: 1.25rem;">
+      <div style="display: flex; justify-content: space-between; font-family: var(--font-sans); font-size: 0.85rem; color: var(--text-secondary);">
+        <span>Checklist Progress</span>
+        <span id="progress-percent">0%</span>
+      </div>
+      <div class="progress-bar-container">
+        <div id="progress-bar" class="progress-bar"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div>CS Foundations Workspace &bull; <a href="./MISSION.md">MISSION.md</a> &bull; <a href="./RESOURCES.md">RESOURCES.md</a></div>
+    <div>Kotlin / Python / Java</div>
+  </footer>
+
+  <script>
+    function switchTab(evt, tabId) {
+      const container = evt.target.closest('.code-tabs');
+      container.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      container.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+      evt.target.classList.add('active');
+      container.querySelector('#' + tabId).classList.add('active');
+    }
+
+    function updateProgress() {
+      const checkboxes = document.querySelectorAll('.check-item input[type="checkbox"]');
+      let checkedCount = 0;
+      checkboxes.forEach(cb => { if (cb.checked) checkedCount++; });
+      const pct = Math.round((checkedCount / checkboxes.length) * 100);
+      document.getElementById('progress-bar').style.width = pct + '%';
+      document.getElementById('progress-percent').innerText = pct + '%';
+    }
+  </script>
+</body>
+</html>

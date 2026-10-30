@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 05: Tabular Dry-Running, Variable State Tracing & The Edge-Case Gauntlet</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .meta-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .deep-callout {
+      border-left: 4px solid #8b5cf6;
+      background: rgba(139, 92, 246, 0.08);
+      padding: 1rem 1.25rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1.5rem 0;
+      font-family: var(--font-sans);
+    }
+    .deep-callout-title {
+      font-weight: 700;
+      color: #7c3aed;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .trace-simulator {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      font-family: var(--font-sans);
+    }
+    .pointer-display {
+      display: flex;
+      gap: 8px;
+      margin: 1rem 0;
+      overflow-x: auto;
+    }
+    .array-node {
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      text-align: center;
+      min-width: 75px;
+      position: relative;
+      font-family: var(--font-mono);
+      transition: all 0.2s ease;
+    }
+    .array-node.left-pointer {
+      border-color: #2563eb;
+      background: rgba(37, 99, 235, 0.08);
+    }
+    .array-node.right-pointer {
+      border-color: #059669;
+      background: rgba(5, 150, 105, 0.08);
+    }
+    .pointer-tag {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      color: white;
+    }
+    .tag-left { background: #2563eb; }
+    .tag-right { background: #059669; }
+    .quiz-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin: 1.25rem 0;
+    }
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-top: 0.75rem;
+    }
+    .quiz-btn {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      font-family: var(--font-sans);
+      font-size: 0.92rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .quiz-btn:hover {
+      border-color: var(--accent);
+    }
+    .quiz-btn.correct {
+      background: var(--success-bg);
+      border-color: var(--success);
+      color: var(--success);
+      font-weight: 600;
+    }
+    .quiz-btn.incorrect {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+    .quiz-feedback {
+      margin-top: 0.75rem;
+      font-family: var(--font-sans);
+      font-size: 0.88rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="meta-bar">
+    <div><a href="../master-plan.html">&larr; Master Curriculum</a> &bull; Lesson 05 of 05</div>
+    <div>Deep CS Edition &bull; Verification Mechanics</div>
+  </div>
+
+  <header>
+    <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+      <span class="badge primary">Lesson 05</span>
+      <span class="badge success">Deep CS Edition</span>
+      <span class="badge">State Tracing & Testing</span>
+    </div>
+    <h1>Tabular Dry-Running, Variable State Tracing & The Edge-Case Gauntlet</h1>
+    <p style="font-size: 1.15rem; color: var(--text-secondary); margin-top: 0.5rem;">
+      The lost art of compiler-free verification: building tabular execution state machines, proving loop invariants mathematically, catching off-by-one pointer bugs, and running the 6-point edge-case gauntlet.
+    </p>
+  </header>
+
+  <hr style="border: none; border-top: 1px solid var(--border); margin: 2rem 0;">
+
+  <!-- Section 1: The Deterministic State Machine -->
+  <section>
+    <h2>1. The Physical State Machine: Tracing Without a Compiler</h2>
+    <p>
+      In modern IDEs, developers rely heavily on breakpoints, debuggers, and rapid compiler feedback. But in a whiteboard coding interview (or on Google Docs / CoderPad without run access), <strong>you are the compiler</strong>.
+    </p>
+    <p>
+      Every computer program is fundamentally a <strong>Deterministic State Machine</strong>:
+    </p>
+    <ul>
+      <li>At any point in time, the program's state is defined by the values stored in its memory variables and instruction pointer.</li>
+      <li>Each line of code executes a deterministic transition that updates that state.</li>
+    </ul>
+
+    <!-- ELI5: The Pre-Flight Checklist -->
+    <div class="eli5-box">
+      <div class="eli5-title">🧸 ELI5: The Airline Pilot's Pre-Flight Checklist</div>
+      <p style="margin-bottom: 0.5rem;">
+        Imagine an airline pilot getting ready for takeoff. They don't just blast down the runway and say: <em>"Let's get up to 30,000 feet and see if the landing gear and wing flaps work!"</em>
+      </p>
+      <p style="margin-bottom: 0;">
+        They sit on the tarmac with a physical checklist. They flip switch 1 &rarr; check gauge. Switch 2 &rarr; check gauge. They verify every mechanical state on paper before moving an inch.<br>
+        In an interview, hitting "Run" or "Submit" immediately is blasting down the runway blindly. Constructing a trace table on the whiteboard is the pre-flight checklist that catches fatal bugs before you take off.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 2: Building the Execution Trace Table -->
+  <section style="margin-top: 2.5rem;">
+    <h2>2. How to Construct a Tabular Trace on Whiteboards</h2>
+    <p>
+      Whenever you finish writing code in an interview, immediately create a structured table to dry-run a sample input.
+    </p>
+    <p>
+      Consider the canonical <strong>Two Pointers on a Sorted Array (Two Sum II)</strong>:<br>
+      <em>Given a 1-indexed sorted array <code>nums = [2, 7, 11, 15]</code> and <code>target = 18</code>, find indices of two numbers that sum to 18.</em>
+    </p>
+
+    <!-- Trace Table Example -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Iteration</th>
+            <th>Left Pointer ($i$)</th>
+            <th>Right Pointer ($j$)</th>
+            <th>Current Sum ($nums[i] + nums[j]$)</th>
+            <th>Comparison vs. Target (18)</th>
+            <th>Next Action & Pointer Update</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Start</strong></td>
+            <td>$0$ (val: 2)</td>
+            <td>$3$ (val: 15)</td>
+            <td>$2 + 15 = 17$</td>
+            <td>$17 < 18$ (Too small!)</td>
+            <td>Need larger sum &rarr; advance <code>left++</code> ($i = 1$)</td>
+          </tr>
+          <tr>
+            <td><strong>Iter 1</strong></td>
+            <td>$1$ (val: 7)</td>
+            <td>$3$ (val: 15)</td>
+            <td>$7 + 15 = 22$</td>
+            <td>$22 > 18$ (Too big!)</td>
+            <td>Need smaller sum &rarr; decrement <code>right--</code> ($j = 2$)</td>
+          </tr>
+          <tr>
+            <td><strong>Iter 2</strong></td>
+            <td>$1$ (val: 7)</td>
+            <td>$2$ (val: 11)</td>
+            <td>$7 + 11 = 18$</td>
+            <td>$18 == 18$ (Match!)</td>
+            <td><strong>Return indices: $[1+1, 2+1] = [2, 3]$</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Interactive Trace Simulator -->
+    <div class="trace-simulator">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <strong style="font-size: 1rem;">Interactive Two-Pointer Trace Simulator</strong>
+        <span class="badge">nums = [2, 7, 11, 15] | Target = 18</span>
+      </div>
+      <p style="font-size: 0.88rem; color: var(--text-secondary); margin-top: 0.4rem;">
+        Click "Advance Step" to watch pointers shift and table state record in real time:
+      </p>
+
+      <div class="pointer-display">
+        <div class="array-node left-pointer" id="node-0">
+          <span class="pointer-tag tag-left" id="tag-l">LEFT</span>
+          <div style="font-size: 1.15rem; font-weight: 700;">2</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">idx 0</div>
+        </div>
+        <div class="array-node" id="node-1">
+          <div style="font-size: 1.15rem; font-weight: 700;">7</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">idx 1</div>
+        </div>
+        <div class="array-node" id="node-2">
+          <div style="font-size: 1.15rem; font-weight: 700;">11</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">idx 2</div>
+        </div>
+        <div class="array-node right-pointer" id="node-3">
+          <span class="pointer-tag tag-right" id="tag-r">RIGHT</span>
+          <div style="font-size: 1.15rem; font-weight: 700;">15</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">idx 3</div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 1rem; align-items: center; margin-top: 1rem;">
+        <button class="tab-btn active" style="padding: 0.4rem 0.9rem; border-radius: 6px; background: var(--accent); color: white;" onclick="stepTrace()">Advance Step &rarr;</button>
+        <button class="tab-btn" style="padding: 0.4rem 0.9rem; border-radius: 6px; border: 1px solid var(--border);" onclick="resetTrace()">Reset</button>
+        <span id="trace-status" style="font-family: var(--font-mono); font-size: 0.88rem; color: var(--text-secondary);">
+          Step 0: Left = 0 (2), Right = 3 (15). Sum = 17 &lt; 18.
+        </span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: Loop Invariants & Off-by-One Traps -->
+  <section style="margin-top: 2.5rem;">
+    <h2>3. Mathematical Loop Invariants & The Off-by-One Trap</h2>
+    <p>
+      In formal computer science, a <strong>Loop Invariant</strong> is a mathematical condition that must hold true before, during, and after every single iteration of a loop.
+    </p>
+
+    <!-- ELI5: The Fence Post Problem -->
+    <div class="eli5-box">
+      <div class="eli5-title">🧸 ELI5: The Fence Post Problem</div>
+      <p style="margin-bottom: 0.5rem;">
+        Imagine building a straight fence that is 10 meters long. You place a wooden fence post every 1 meter.<br>
+        <strong>How many fence posts do you need?</strong><br>
+        Most people say 10. But the correct answer is <strong>11 posts</strong>! You need a post at meter 0, meter 1, meter 2... all the way to meter 10.
+      </p>
+      <p style="margin-bottom: 0;">
+        Off-by-one errors happen when programmers confuse <em>fence sections</em> with <em>fence posts</em>. In code, choosing between <code>left &lt; right</code> vs. <code>left &le; right</code>, or <code>0 until n</code> vs. <code>0 .. n - 1</code>, is the difference between working code and an <code>ArrayIndexOutOfBoundsException</code>.
+      </p>
+    </div>
+
+    <div class="deep-callout">
+      <div class="deep-callout-title">The Invariant of Two Pointers</div>
+      In Two Sum II: <em>"The optimal pair, if it exists, is guaranteed to lie within the inclusive subsegment <code>nums[left .. right]</code>."</em><br>
+      <strong>Why:</strong> Because the array is sorted, any element to the left of <code>left</code> is already too small to pair with anything; any element to the right of <code>right</code> is already too large. When <code>left == right</code>, the subsegment collapses to a single element (cannot pair with itself), terminating the search in exactly $O(n)$ steps.
+    </div>
+  </section>
+
+  <!-- Section 4: The Universal 6-Point Edge-Case Gauntlet -->
+  <section style="margin-top: 2.5rem;">
+    <h2>4. The Universal 6-Point Edge-Case Gauntlet</h2>
+    <p>
+      Before saying <em>"I'm finished,"</em> run your code mentally through this standardized 6-point gauntlet. 90% of interview bug-catching points come from these exact scenarios:
+    </p>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Gauntlet Check</th>
+            <th>Sample Input Shape</th>
+            <th>What Breaks if You Aren't Defensive</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1. Empty / Null</strong></td>
+            <td><code>nums = []</code> or <code>null</code></td>
+            <td><code>NullPointerException</code> or indexing <code>nums[0]</code> crashes immediately.</td>
+          </tr>
+          <tr>
+            <td><strong>2. Single Element</strong></td>
+            <td><code>nums = [42]</code></td>
+            <td>Pair problems require 2 elements; loops that assume $n \ge 2$ enter infinite loops or crash.</td>
+          </tr>
+          <tr>
+            <td><strong>3. Minimum Pair</strong></td>
+            <td><code>nums = [1, 2]</code></td>
+            <td>Pointers start at 0 and 1; ensures loop terminates correctly without off-by-one skipping.</td>
+          </tr>
+          <tr>
+            <td><strong>4. All Duplicates</strong></td>
+            <td><code>nums = [5, 5, 5, 5]</code></td>
+            <td>Hash maps might overwrite indices; two-pointer advancement must not skip both simultaneously.</td>
+          </tr>
+          <tr>
+            <td><strong>5. Extreme Values</strong></td>
+            <td><code>[-2147483648, 2147483647]</code></td>
+            <td>Summing or midpoint math triggers silent 32-bit integer overflow into negative values.</td>
+          </tr>
+          <tr>
+            <td><strong>6. Inverted / Sorted</strong></td>
+            <td>Reverse sorted <code>[5, 4, 3, 2, 1]</code></td>
+            <td>Algorithms that assume ascending order fail instantly.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section 5: Polyglot Annotated Implementations -->
+  <section style="margin-top: 2.5rem;">
+    <h2>5. Polyglot Code: Two Pointers with Invariant Annotations</h2>
+
+    <div class="code-tabs">
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab(event, 'code-kotlin')">Kotlin (Primary)</button>
+        <button class="tab-btn" onclick="switchTab(event, 'code-python')">Python</button>
+        <button class="tab-btn" onclick="switchTab(event, 'code-java')">Java</button>
+      </div>
+
+      <div id="code-kotlin" class="tab-pane active">
+<pre><code>class TwoPointersShowcase {
+    // Time: O(n) | Auxiliary Space: O(1)
+    fun twoSumSorted(numbers: IntArray, target: Int): IntArray {
+        // Defensive check: Gauntlet point 1 & 2
+        if (numbers.size < 2) return intArrayOf()
+
+        var left = 0
+        var right = numbers.size - 1
+
+        // INVARIANT: left < right ensures we never pair an element with itself
+        while (left < right) {
+            val sum = numbers[left] + numbers[right]
+
+            when {
+                sum == target -> {
+                    // Problem is 1-indexed in LeetCode 167
+                    return intArrayOf(left + 1, right + 1)
+                }
+                sum < target -> {
+                    // Sum too small: must advance left to a larger value
+                    left++
+                }
+                else -> {
+                    // Sum too large: must decrement right to a smaller value
+                    right--
+                }
+            }
+        }
+        return intArrayOf()
+    }
+}</code></pre>
+      </div>
+
+      <div id="code-python" class="tab-pane">
+<pre><code>class TwoPointersShowcase:
+    # Time: O(n) | Auxiliary Space: O(1)
+    def twoSumSorted(self, numbers: list[int], target: int) -> list[int]:
+        if not numbers or len(numbers) < 2:
+            return []
+
+        left = 0
+        right = len(numbers) - 1
+
+        # INVARIANT: Target pair resides within numbers[left..right]
+        while left < right:
+            current_sum = numbers[left] + numbers[right]
+            if current_sum == target:
+                return [left + 1, right + 1]
+            elif current_sum < target:
+                left += 1
+            else:
+                right -= 1
+
+        return []</code></pre>
+      </div>
+
+      <div id="code-java" class="tab-pane">
+<pre><code>public class TwoPointersShowcase {
+    // Time: O(n) | Auxiliary Space: O(1)
+    public int[] twoSumSorted(int[] numbers, int target) {
+        if (numbers == null || numbers.length < 2) {
+            return new int[0];
+        }
+
+        int left = 0;
+        int right = numbers.length - 1;
+
+        // INVARIANT: Distinct elements guaranteed by strict inequality
+        while (left < right) {
+            int sum = numbers[left] + numbers[right];
+
+            if (sum == target) {
+                return new int[] { left + 1, right + 1 };
+            } else if (sum < target) {
+                left++;
+            } else {
+                right--;
+            }
+        }
+        return new int[0];
+    }
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 6: Primary Sources -->
+  <section style="margin-top: 2.5rem;">
+    <h2>6. Curated Academic Primary Sources</h2>
+    <div class="grid-2">
+      <div class="card">
+        <strong>Edsger W. Dijkstra: Structured Programming</strong>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.3rem;">
+          Turing Award winner Dijkstra's foundational thesis on proving code correctness using program invariants and loop state assertions.
+        </p>
+        <div style="margin-top: 0.5rem;">
+          <a href="https://www.cs.utexas.edu/users/EWD/ewd02xx/EWD249.PDF" target="_blank" rel="noreferrer">Read Dijkstra EWD249 &rarr;</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <strong>Stanford CS106B: Testing & Invariant Strategies</strong>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.3rem;">
+          Stanford University's definitive guide to systematic boundary verification, edge-case gauntlets, and state machine tracing.
+        </p>
+        <div style="margin-top: 0.5rem;">
+          <a href="https://web.stanford.edu/class/cs106b/" target="_blank" rel="noreferrer">Explore Stanford Courseware &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 7: Knowledge Verification Quiz -->
+  <section style="margin-top: 2.5rem;">
+    <h2>7. Knowledge Check (Verify Storage Strength)</h2>
+    <p style="color: var(--text-secondary);">
+      Verify your grasp of state tracing, invariants, and edge cases.
+    </p>
+
+    <!-- Question 1 -->
+    <div class="quiz-card" id="q1">
+      <strong>Question 1: What is a loop invariant in computer programming?</strong>
+      <div class="quiz-options">
+        <button class="quiz-btn" onclick="checkAnswer(1, 0)">Condition holding true every iteration.</button>
+        <button class="quiz-btn" onclick="checkAnswer(1, 1)">Memory allocation inside a loop.</button>
+        <button class="quiz-btn" onclick="checkAnswer(1, 2)">Compiler optimization on array bounds.</button>
+      </div>
+      <div class="quiz-feedback" id="fb1"></div>
+    </div>
+
+    <!-- Question 2 -->
+    <div class="quiz-card" id="q2">
+      <strong>Question 2: Why do we use <code>left &lt; right</code> instead of <code>left &le; right</code> in Two Sum II?</strong>
+      <div class="quiz-options">
+        <button class="quiz-btn" onclick="checkAnswer(2, 0)">To avoid out of bounds.</button>
+        <button class="quiz-btn" onclick="checkAnswer(2, 1)">Prevents pairing an element with itself.</button>
+        <button class="quiz-btn" onclick="checkAnswer(2, 2)">Saves CPU clock cycle execution.</button>
+      </div>
+      <div class="quiz-feedback" id="fb2"></div>
+    </div>
+
+    <!-- Question 3 -->
+    <div class="quiz-card" id="q3">
+      <strong>Question 3: Why should an engineer construct an execution trace table before clicking run?</strong>
+      <div class="quiz-options">
+        <button class="quiz-btn" onclick="checkAnswer(3, 0)">Catches logic bugs before submission.</button>
+        <button class="quiz-btn" onclick="checkAnswer(3, 1)">Forces compiler to run faster.</button>
+        <button class="quiz-btn" onclick="checkAnswer(3, 2)">Reduces total heap memory consumption.</button>
+      </div>
+      <div class="quiz-feedback" id="fb3"></div>
+    </div>
+
+    <!-- Question 4 -->
+    <div class="quiz-card" id="q4">
+      <strong>Question 4: Which test case tests the boundary behavior of an algorithm taking an array?</strong>
+      <div class="quiz-options">
+        <button class="quiz-btn" onclick="checkAnswer(4, 0)">Random array with fifty elements.</button>
+        <button class="quiz-btn" onclick="checkAnswer(4, 1)">Empty array and single element.</button>
+        <button class="quiz-btn" onclick="checkAnswer(4, 2)">Array containing only even integers.</button>
+      </div>
+      <div class="quiz-feedback" id="fb4"></div>
+    </div>
+  </section>
+
+  <!-- Need Help Reminder -->
+  <div class="callout" style="margin-top: 2.5rem;">
+    <div class="callout-title">Congratulations on completing Foundations!</div>
+    You have mastered RAM architecture, pointer arithmetic, asymptotic math, logarithmic scaling, constraint analysis, interview communication, and tabular state tracing! Ask your AI mentor any final questions before starting your very first LeetCode problem!
+  </div>
+
+  <footer>
+    <div><a href="0004-interview-protocol.html">&larr; Lesson 04: Interview Protocol</a> &bull; <a href="../master-plan.html">Master Plan</a></div>
+    <div>Complete &bull; Ready for LeetCode #1</div>
+  </footer>
+
+  <script>
+    function switchTab(evt, tabId) {
+      const container = evt.target.closest('.code-tabs');
+      container.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      container.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+      evt.target.classList.add('active');
+      container.querySelector('#' + tabId).classList.add('active');
+    }
+
+    // Trace Simulator
+    let traceStep = 0;
+    const states = [
+      { left: 0, right: 3, sum: 17, msg: "Step 0: Left = 0 (2), Right = 3 (15). Sum = 17 < 18. Advance left++." },
+      { left: 1, right: 3, sum: 22, msg: "Step 1: Left = 1 (7), Right = 3 (15). Sum = 22 > 18. Decrement right--." },
+      { left: 1, right: 2, sum: 18, msg: "Step 2: Left = 1 (7), Right = 2 (11). Sum = 18 == 18. MATCH FOUND! Return [2, 3]." }
+    ];
+
+    function updateSimulatorUI(s) {
+      for (let i = 0; i <= 3; i++) {
+        const node = document.getElementById('node-' + i);
+        node.className = 'array-node';
+        if (i === s.left) node.classList.add('left-pointer');
+        if (i === s.right) node.classList.add('right-pointer');
+      }
+
+      const tagL = document.getElementById('tag-l');
+      const tagR = document.getElementById('tag-r');
+      document.getElementById('node-' + s.left).appendChild(tagL);
+      document.getElementById('node-' + s.right).appendChild(tagR);
+
+      document.getElementById('trace-status').innerText = s.msg;
+    }
+
+    function stepTrace() {
+      if (traceStep < states.length - 1) {
+        traceStep++;
+      }
+      updateSimulatorUI(states[traceStep]);
+    }
+
+    function resetTrace() {
+      traceStep = 0;
+      updateSimulatorUI(states[0]);
+    }
+
+    const correctAnswers = { 1: 0, 2: 1, 3: 0, 4: 1 };
+    const explanations = {
+      1: "Correct! A loop invariant is a statement about program variables that remains mathematically true across all iterations.",
+      2: "Correct! If left equals right, you would be summing an element with itself, violating the 'two distinct numbers' requirement.",
+      3: "Correct! Manual dry-running catches off-by-one errors and pointer boundary bugs before exposing them to the compiler or interviewer.",
+      4: "Correct! Empty inputs and single-item collections are the classic boundary cases that trigger runtime crashes."
+    };
+
+    function checkAnswer(qNum, selectedIdx) {
+      const card = document.getElementById('q' + qNum);
+      const buttons = card.querySelectorAll('.quiz-btn');
+      const fb = document.getElementById('fb' + qNum);
+      const isCorrect = selectedIdx === correctAnswers[qNum];
+
+      buttons.forEach((btn, i) => {
+        btn.classList.remove('correct', 'incorrect');
+        if (i === correctAnswers[qNum]) {
+          btn.classList.add('correct');
+        } else if (i === selectedIdx) {
+          btn.classList.add('incorrect');
+        }
+      });
+
+      fb.style.display = 'block';
+      if (isCorrect) {
+        fb.innerHTML = `<span style="color: var(--success); font-weight: 600;">&check; ${explanations[qNum]}</span>`;
+      } else {
+        fb.innerHTML = `<span style="color: #ef4444; font-weight: 600;">&cross; Incorrect.</span> ${explanations[qNum]}`;
+      }
+    }
+  </script>
+</body>
+</html>

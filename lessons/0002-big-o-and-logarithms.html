@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 02: Big O Deconstructed — Asymptotics, The "Halving Game" (log n), & Memory Accounting</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .meta-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .deep-callout {
+      border-left: 4px solid #8b5cf6;
+      background: rgba(139, 92, 246, 0.08);
+      padding: 1rem 1.25rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1.5rem 0;
+      font-family: var(--font-sans);
+    }
+    .deep-callout-title {
+      font-weight: 700;
+      color: #7c3aed;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .halving-simulator {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      font-family: var(--font-sans);
+    }
+    .sim-controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    .sim-input {
+      padding: 0.4rem 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      width: 140px;
+    }
+    .halving-trace {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    .trace-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 0.45rem 0.8rem;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+    }
+    .trace-step {
+      font-weight: 700;
+      color: var(--accent);
+      min-width: 70px;
+    }
+    .trace-bar {
+      height: 8px;
+      background: var(--accent);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+    .quiz-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin: 1.25rem 0;
+    }
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-top: 0.75rem;
+    }
+    .quiz-btn {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      font-family: var(--font-sans);
+      font-size: 0.92rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .quiz-btn:hover {
+      border-color: var(--accent);
+    }
+    .quiz-btn.correct {
+      background: var(--success-bg);
+      border-color: var(--success);
+      color: var(--success);
+      font-weight: 600;
+    }
+    .quiz-btn.incorrect {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+    .quiz-feedback {
+      margin-top: 0.75rem;
+      font-family: var(--font-sans);
+      font-size: 0.88rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="meta-bar">
+    <div><a href="../master-plan.html">&larr; Master Curriculum</a> &bull; Lesson 02 of 05</div>
+    <div>Deep CS Edition &bull; Asymptotic Theory & Mechanics</div>
+  </div>
+
+  <header>
+    <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+      <span class="badge primary">Lesson 02</span>
+      <span class="badge success">Deep CS Edition</span>
+      <span class="badge">Asymptotic Analysis</span>
+    </div>
+    <h1>Big O Deconstructed: Asymptotics, Halving (&log; n), & Memory Accounting</h1>
+    <p style="font-size: 1.15rem; color: var(--text-secondary); margin-top: 0.5rem;">
+      Formal mathematical limits ($n \to \infty$), demystifying why cutting search spaces in half produces $\log_2 n$, the hidden $O(n)$ loops inside standard library functions, and auditing Call Stack frames vs. Heap memory.
+    </p>
+  </header>
+
+  <hr style="border: none; border-top: 1px solid var(--border); margin: 2rem 0;">
+
+  <!-- Section 1: The Asymptotic Triad (O, Omega, Theta) -->
+  <section>
+    <h2>1. The Formal Asymptotic Triad: Big O, Big &Omega;, Big &Theta;</h2>
+    <p>
+      In Computer Science, we do not measure algorithm speed in seconds or milliseconds. Wall-clock time varies wildly across different CPUs, operating system workloads, and compiler flags. Instead, we measure the <strong>rate of growth in fundamental operations as the input size $n$ approaches infinity ($n \to \infty$)</strong>.
+    </p>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Notation</th>
+            <th>Mathematical Meaning</th>
+            <th>Plain English Equivalent</th>
+            <th>Interview Relevance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Big O ($\mathcal{O}$)</strong></td>
+            <td>Upper Bound: $f(n) \le c \cdot g(n)$ for large $n$.</td>
+            <td><strong>Worst-Case Scenario</strong> (Guaranteed ceiling; runtime will never be worse than this).</td>
+            <td><strong>The Primary Metric.</strong> In 99% of interviews, when asked for complexity, you report Big O.</td>
+          </tr>
+          <tr>
+            <td><strong>Big Omega ($\Omega$)</strong></td>
+            <td>Lower Bound: $f(n) \ge c \cdot g(n)$ for large $n$.</td>
+            <td><strong>Best-Case Scenario</strong> (Optimal conditions, e.g. target is the very first element checked).</td>
+            <td>Used when discussing algorithmic limits (e.g. comparison sorting is $\Omega(n \log n)$).</td>
+          </tr>
+          <tr>
+            <td><strong>Big Theta ($\Theta$)</strong></td>
+            <td>Tight Bound: Trapped between upper and lower bounds.</td>
+            <td><strong>Exact Scaling</strong> (Both worst and best cases scale at the exact same rate).</td>
+            <td>e.g., Finding the minimum in an unsorted array is $\Theta(n)$ because you must always check all $n$.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>The Two Golden Reduction Rules</h3>
+    <ol style="margin-left: 1.2rem;">
+      <li>
+        <strong>Rule 1: Discard Constant Multipliers.</strong><br>
+        An algorithm performing $3n$ operations and an algorithm performing $100n$ operations both scale linearly. As $n$ grows to billions, the factor of 100 is trivial compared to a curve that grows quadratically ($n^2$). Hence: $\mathcal{O}(100n) \implies \mathcal{O}(n)$.
+      </li>
+      <li style="margin-top: 0.5rem;">
+        <strong>Rule 2: Discard Non-Dominant Terms.</strong><br>
+        If an algorithm executes $n^2 + 500n + 10,000$ operations:
+        $$\text{When } n = 1,000,000: \quad n^2 = 1,000,000,000,000 \quad \text{while } 500n = 500,000,000$$
+        The $n^2$ term accounts for $99.95\%$ of the execution time. The linear and constant terms vanish into statistical noise. Hence: $\mathcal{O}(n^2 + 500n) \implies \mathcal{O}(n^2)$.
+      </li>
+    </ol>
+
+    <!-- ELI5: Bicycle vs Rocket -->
+    <div class="eli5-box">
+      <div class="eli5-title">🧸 ELI5: The Bicycle vs. The Rocket Ship</div>
+      <p style="margin-bottom: 0.5rem;">
+        <strong>Why do we ignore constants like $100n$ vs $n$?</strong><br>
+        Imagine you are riding a bicycle ($O(n)$) and your friend is flying a rocket ship ($O(n^2)$). If you are only traveling 5 feet ($n = 2$), your bicycle might be faster because the rocket takes time to ignite.
+      </p>
+      <p style="margin-bottom: 0.5rem;">
+        Even if you upgrade your bicycle to a 100-gear racing bike ($100n$), what happens when the destination is Mars ($n = 1,000,000$)?
+      </p>
+      <p style="margin-bottom: 0;">
+        The rocket accelerates into deep space at $1,000,000,000,000$ miles per hour while you are still pedaling your bike. When $n \to \infty$, the mechanical category of the vehicle (linear vs. quadratic) completely dwarfs any small multiplier like $100$ or $5$.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 2: The 7 Universal Complexity Classes -->
+  <section style="margin-top: 2.5rem;">
+    <h2>2. The 7 Fundamental Complexity Classes</h2>
+    <p>
+      Almost every algorithm encountered in interviews belongs to one of seven growth curves. Observe how execution counts explode as $n$ increases:
+    </p>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Class</th>
+            <th>Name</th>
+            <th>$n = 10$</th>
+            <th>$n = 100$</th>
+            <th>$n = 100,000$ ($10^5$)</th>
+            <th>Canonical Example</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>$\mathbf{\mathcal{O}(1)}$</td>
+            <td>Constant</td>
+            <td>1</td>
+            <td>1</td>
+            <td>1</td>
+            <td>Array index lookup <code>arr[i]</code>, Hash Map lookup</td>
+          </tr>
+          <tr>
+            <td>$\mathbf{\mathcal{O}(\log n)}$</td>
+            <td>Logarithmic</td>
+            <td>$\approx 3$</td>
+            <td>$\approx 7$</td>
+            <td><strong>17</strong></td>
+            <td>Binary Search in a sorted array</td>
+          </tr>
+          <tr>
+            <td>$\mathbf{\mathcal{O}(n)}$</td>
+            <td>Linear</td>
+            <td>10</td>
+            <td>100</td>
+            <td>100,000</td>
+            <td>Single loop, linear scan</td>
+          </tr>
+          <tr>
+            <td>$\mathbf{\mathcal{O}(n \log n)}$</td>
+            <td>Linearithmic</td>
+            <td>$\approx 33$</td>
+            <td>$\approx 664$</td>
+            <td>$1.7 \times 10^6$</td>
+            <td>Merge Sort, Quick Sort (average), Heap Sort</td>
+          </tr>
+          <tr>
+            <td>$\mathbf{\mathcal{O}(n^2)}$</td>
+            <td>Quadratic</td>
+            <td>100</td>
+            <td>10,000</td>
+            <td><strong>$10^{10}$ (TLE!)</strong></td>
+            <td>Nested loops, brute force pair comparisons</td>
+          </tr>
+          <tr>
+            <td>$\mathbf{\mathcal{O}(2^n)}$</td>
+            <td>Exponential</td>
+            <td>1,024</td>
+            <td>$1.26 \times 10^{30}$</td>
+            <td><em>Heat death of universe</em></td>
+            <td>Recursive subsets, naive Fibonacci</td>
+          </tr>
+          <tr>
+            <td>$\mathbf{\mathcal{O}(n!)}$</td>
+            <td>Factorial</td>
+            <td>$3.6 \times 10^6$</td>
+            <td>$9.3 \times 10^{157}$</td>
+            <td><em>Uncomputable</em></td>
+            <td>Generating all permutations</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Section 3: The Halving Game (log n) -->
+  <section style="margin-top: 2.5rem;">
+    <h2>3. Demystifying the Logarithm: The "Halving Game"</h2>
+    <p>
+      Many self-taught developers find $\mathcal{O}(\log n)$ intimidating because they associate logarithms with calculus. In Computer Science, logarithms have a physical, intuitive definition:
+    </p>
+
+    <div class="callout success">
+      <div class="callout-title">The Physical Law of Logarithms</div>
+      If exponential growth is <strong>repeated doubling</strong> ($2 \times 2 \times 2 = 2^3 = 8$), then a base-2 logarithm ($\log_2 n$) is the exact inverse: <strong>how many times can you divide $n$ in half until you reach 1?</strong>
+    </div>
+
+    <!-- Interactive Halving Simulator -->
+    <div class="halving-simulator">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <strong style="font-size: 1rem;">Interactive Halving Game Simulator</strong>
+        <span class="badge">Formula: Cuts = &lceil;&log;&sup2; n&rceil;</span>
+      </div>
+      <p style="font-size: 0.88rem; color: var(--text-secondary); margin-top: 0.4rem;">
+        Type any input size $n$ to physically watch the search space collapse in half:
+      </p>
+
+      <div class="sim-controls">
+        <span>Input Size ($n$):</span>
+        <input type="number" id="halve-input" class="sim-input" value="1000" min="2" max="10000000" onchange="runHalving()">
+        <button class="tab-btn active" style="padding: 0.4rem 0.8rem; border-radius: 6px; background: var(--accent); color: white;" onclick="runHalving()">Simulate Halving</button>
+      </div>
+
+      <div class="halving-trace" id="halving-trace"></div>
+    </div>
+
+    <h3>Why Binary Search is $O(\log n)$</h3>
+    <p>
+      In a sorted array of $n$ elements, when searching for a target:
+    </p>
+    <ol style="margin-left: 1.2rem;">
+      <li>We inspect the middle element: <code>mid = left + (right - left) / 2</code>.</li>
+      <li>If <code>nums[mid] == target</code>, we are done.</li>
+      <li>If <code>target < nums[mid]</code>, we eliminate the entire right half of the array!</li>
+      <li>If <code>target > nums[mid]</code>, we eliminate the entire left half!</li>
+    </ol>
+    <p>
+      Every single comparison cuts the remaining search candidates by $50\%$. If $n = 1,000,000$ (one million items), it takes only <strong>20 comparisons</strong> to find any element or prove it doesn't exist ($2^{20} = 1,048,576$).
+    </p>
+
+    <h3>Why Divide-and-Conquer Sorting is $O(n \log n)$</h3>
+    <p>
+      Why does Merge Sort run in $\mathcal{O}(n \log n)$?
+    </p>
+    <ul>
+      <li><strong>The Height ($\log n$):</strong> Repeatedly dividing an array of size $n$ into halves creates a tree of depth $\log_2 n$.</li>
+      <li><strong>The Work per Level ($n$):</strong> At each level of the tree, merging the split subarrays back together inspects all $n$ elements linearly.</li>
+      <li><strong>Total Time:</strong> $\log n \text{ levels} \times n \text{ work per level} = \mathbf{O(n \log n)}$.</li>
+    </ul>
+
+    <!-- ELI5: Halving Game & Tournament -->
+    <div class="eli5-box">
+      <div class="eli5-title">🧸 ELI5: The "Guess My Number" Game & The World Cup Bracket</div>
+      <p style="margin-bottom: 0.5rem;">
+        <strong>Binary Search ($\log n$) — The "Guess My Number" Game:</strong><br>
+        I pick a secret number between 1 and 100. You guess 50. I say: <em>"Higher!"</em><br>
+        In a single second, numbers 1 through 50 are eliminated. You didn't test 50 numbers; you threw them all in the trash at once! Your next guess is 75. <em>"Lower!"</em> Another 25 numbers vanish. By cutting the remaining candidates in half every guess, you find any secret number between 1 and 100 in just 7 guesses ($\log_2 100 \approx 7$). For 1,000,000 numbers, it takes only 20 guesses!
+      </p>
+      <p style="margin-bottom: 0;">
+        <strong>Merge Sort ($n \log n$) — The Tournament Bracket:</strong><br>
+        Think of March Madness or the World Cup with 64 teams. How many rounds of games are played? Just 6 rounds! Why? Because $2^6 = 64$ ($\log_2 64 = 6$). In every round, all surviving teams must play their match ($n$ work). If you have 6 rounds ($\log n$), and every round involves the full set of competitors ($n$), the total tournament effort is <strong>$n \times \log n$</strong>.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 4: The Hidden Big O in Standard Libraries -->
+  <section style="margin-top: 2.5rem;">
+    <h2>4. The "Hidden Big O" Trap in Built-in Standard Methods</h2>
+    <p>
+      The #1 trap that causes self-taught engineers to fail coding interviews is writing clean, modern high-level syntax that secretly hides an $O(n)$ loop inside.
+    </p>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Language</th>
+            <th>Innocent One-Liner</th>
+            <th>Underlying Hardware Cost</th>
+            <th>Disaster Scenario</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Kotlin</td>
+            <td><code>list.contains(target)</code></td>
+            <td><strong>O(n)</strong> (Linear scan from index 0 across all elements)</td>
+            <td>Calling it inside a <code>for (item in list)</code> loop &rarr; <strong>Accidental O(n&sup2;)!</strong></td>
+          </tr>
+          <tr>
+            <td>Kotlin / Java</td>
+            <td><code>list.removeAt(0)</code></td>
+            <td><strong>O(n)</strong> (Must physically shift all remaining $n-1$ memory cells left by 1)</td>
+            <td>Popping elements from the front of an <code>ArrayList</code> in a loop &rarr; <strong>O(n&sup2;)!</strong> (Use a <code>ArrayDeque</code> for $O(1)$ front pops).</td>
+          </tr>
+          <tr>
+            <td>Python</td>
+            <td><code>if target in my_list:</code></td>
+            <td><strong>O(n)</strong> (Iterates sequentially through python object pointers)</td>
+            <td>Checking membership on a list instead of a <code>set()</code> &rarr; <strong>O(n&sup2;)!</strong></td>
+          </tr>
+          <tr>
+            <td>Kotlin / Java / Python</td>
+            <td><code>str += char</code> (in a loop)</td>
+            <td><strong>O(n) per concatenation</strong> (Strings are immutable; must allocate a new string and copy all chars)</td>
+            <td>Building a string of length $n$ character by character &rarr; $\sum_{i=1}^n i = \mathbf{O(n^2)!}$ (Always use <code>StringBuilder</code> in Kotlin/Java or <code>"".join()</code> in Python).</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ELI5: Hidden Loop & String Building -->
+    <div class="eli5-box">
+      <div class="eli5-title">🧸 ELI5: Tearing Down the Entire House to Add One Brick</div>
+      <p style="margin-bottom: 0.5rem;">
+        <strong>The String Immutability Trap (<code>str += char</code>):</strong><br>
+        Imagine you build a toy brick wall with 100 blocks. You want to add 1 more block to the end.<br>
+        Instead of just sticking the new block on, imagine a rule that says: <em>"You are forbidden from changing this wall. You must buy a brand new patch of land, rebuild all 100 blocks from scratch, add the 101st block, and bulldoze the old wall."</em>
+      </p>
+      <p style="margin-bottom: 0;">
+        That is what <code>str += char</code> does in Kotlin, Java, and Python! Strings cannot be mutated. Every single time you append, the computer copies the entire existing string into a new memory location. Doing that $n$ times copies $1 + 2 + 3 + \dots + n$ characters $\implies \mathbf{O(n^2)}$ work! Using a <code>StringBuilder</code> is like keeping an expandable bag where you can toss blocks in without rebuilding anything.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 5: Memory Accounting -->
+  <section style="margin-top: 2.5rem;">
+    <h2>5. Memory Accounting: Call Stack vs. Heap Allocation</h2>
+    <p>
+      When an interviewer asks: <em>"What is your space complexity?"</em>, they are probing your understanding of physical memory layout.
+    </p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3 style="font-size: 1.1rem; color: var(--accent);">The Call Stack</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary);">
+          Fast, fixed-size memory managed automatically by the CPU. Every time a function is called, a <strong>Stack Frame</strong> is pushed containing:
+        </p>
+        <ul style="font-size: 0.88rem; color: var(--text-secondary); margin-left: 1.2rem;">
+          <li>Function return address (where to jump after returning).</li>
+          <li>Local primitive variables (integers, booleans).</li>
+          <li>Object reference pointers.</li>
+        </ul>
+        <p style="font-size: 0.88rem; margin-top: 0.5rem;">
+          <strong>Recursion Rule:</strong> A recursive function of call depth $d$ consumes $\mathbf{O(d)}$ auxiliary stack space, even if you never allocate a single object! Exceeding the stack size limits causes a physical <code>StackOverflowError</code>.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3 style="font-size: 1.1rem; color: var(--success);">The Heap</h3>
+        <p style="font-size: 0.9rem; color: var(--text-secondary);">
+          Large, flexible memory pool for dynamically sized data structures.
+        </p>
+        <ul style="font-size: 0.88rem; color: var(--text-secondary); margin-left: 1.2rem;">
+          <li>All objects created with <code>HashMap()</code>, <code>ArrayList()</code>, or custom class nodes.</li>
+          <li>Cleaned up by the Garbage Collector (JVM) or reference counting (Python).</li>
+        </ul>
+        <p style="font-size: 0.88rem; margin-top: 0.5rem;">
+          <strong>Heap Rule:</strong> Creating a hash table holding $n$ elements consumes $\mathbf{O(n)}$ auxiliary heap space.
+        </p>
+      </div>
+    </div>
+
+    <div class="deep-callout">
+      <div class="deep-callout-title">Auxiliary Space vs. Total Space</div>
+      <strong>Total Space Complexity:</strong> Includes the memory of the input data, the output data, and any temporary scratchpad memory.<br>
+      <strong>Auxiliary Space Complexity:</strong> Measures ONLY the <em>extra scratchpad memory</em> allocated by your algorithm to solve the problem.<br>
+      <em>Interview Rule:</em> When interviewers ask for space complexity, they almost always mean <strong>Auxiliary Space</strong>. If a problem takes an array of size $n$ and you modify it in-place without creating new data structures, your auxiliary space complexity is $\mathbf{O(1)}$.
+    </div>
+
+    <!-- ELI5: Stack vs Heap -->
+    <div class="eli5-box">
+      <div class="eli5-title">🧸 ELI5: The Cafeteria Tray Stack vs. The Giant Warehouse Floor</div>
+      <p style="margin-bottom: 0.5rem;">
+        <strong>The Call Stack — A Spring-Loaded Tray Dispenser:</strong><br>
+        In a school cafeteria, clean trays are stacked in a spring dispenser. When a function is called, you place a new tray on top (a <em>Stack Frame</em>). You can only ever touch the top tray. When the function finishes, you take the tray off.<br>
+        If a recursive function calls itself 10,000 times without finishing, the stack of trays grows so high it crashes into the ceiling. That is a literal <strong>StackOverflowError</strong>!
+      </p>
+      <p style="margin-bottom: 0;">
+        <strong>The Heap — A Giant Warehouse Floor:</strong><br>
+        The Heap is an enormous open warehouse floor. You can drop giant boxes of any size anywhere you like (objects, arrays, hash tables). But because boxes are scattered across the floor, a robot cleaner (the <em>Garbage Collector</em>) has to roam around periodically to sweep up abandoned boxes.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 6: Polyglot Code -->
+  <section style="margin-top: 2.5rem;">
+    <h2>6. Polyglot Code Study: Binary Search & Safe String Building</h2>
+
+    <div class="code-tabs">
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab(event, 'code-kotlin')">Kotlin (Primary)</button>
+        <button class="tab-btn" onclick="switchTab(event, 'code-python')">Python</button>
+        <button class="tab-btn" onclick="switchTab(event, 'code-java')">Java</button>
+      </div>
+
+      <div id="code-kotlin" class="tab-pane active">
+<pre><code>class ComplexityShowcase {
+    // 1. BINARY SEARCH: O(log n) Time | O(1) Auxiliary Space
+    fun binarySearch(nums: IntArray, target: Int): Int {
+        var left = 0
+        var right = nums.size - 1
+
+        while (left <= right) {
+            // (left + right) / 2 can overflow integer bounds!
+            // Safe midpoint formula prevents 32-bit integer overflow:
+            val mid = left + (right - left) / 2
+
+            when {
+                nums[mid] == target -> return mid
+                nums[mid] < target -> left = mid + 1  // Eliminate left 50%
+                else -> right = mid - 1                // Eliminate right 50%
+            }
+        }
+        return -1
+    }
+
+    // 2. SAFE STRING BUILDING: O(n) Time | O(n) Space
+    // (Avoids the accidental O(n²) string immutability trap)
+    fun buildSafeString(items: List<String>): String {
+        val sb = StringBuilder() // Allocates resizable char buffer on Heap
+        for (item in items) {
+            sb.append(item)      // O(1) amortized append
+        }
+        return sb.toString()
+    }
+}</code></pre>
+      </div>
+
+      <div id="code-python" class="tab-pane">
+<pre><code>class ComplexityShowcase:
+    # 1. BINARY SEARCH: O(log n) Time | O(1) Auxiliary Space
+    def binarySearch(self, nums: list[int], target: int) -> int:
+        left, right = 0, len(nums) - 1
+
+        while left <= right:
+            mid = left + (right - left) // 2
+            if nums[mid] == target:
+                return mid
+            elif nums[mid] < target:
+                left = mid + 1  # Discard left half
+            else:
+                right = mid - 1 # Discard right half
+        return -1
+
+    # 2. SAFE STRING BUILDING: O(n) Time | O(n) Space
+    # (Avoids str += char copying trap)
+    def buildSafeString(self, items: list[str]) -> str:
+        return "".join(items)  # Computes total length once and allocates O(n) buffer</code></pre>
+      </div>
+
+      <div id="code-java" class="tab-pane">
+<pre><code>public class ComplexityShowcase {
+    // 1. BINARY SEARCH: O(log n) Time | O(1) Auxiliary Space
+    public int binarySearch(int[] nums, int target) {
+        int left = 0;
+        int right = nums.length - 1;
+
+        while (left <= right) {
+            // Safe midpoint calculation avoiding integer overflow
+            int mid = left + (right - left) / 2;
+
+            if (nums[mid] == target) {
+                return mid;
+            } else if (nums[mid] < target) {
+                left = mid + 1; // Eliminate left 50%
+            } else {
+                right = mid - 1; // Eliminate right 50%
+            }
+        }
+        return -1;
+    }
+
+    // 2. SAFE STRING BUILDING: O(n) Time | O(n) Space
+    public String buildSafeString(String[] items) {
+        StringBuilder sb = new StringBuilder();
+        for (String item : items) {
+            sb.append(item); // O(1) amortized append
+        }
+        return sb.toString();
+    }
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 7: Primary Sources -->
+  <section style="margin-top: 2.5rem;">
+    <h2>7. Curated Academic Primary Sources</h2>
+    <div class="grid-2">
+      <div class="card">
+        <strong>MIT 6.006: Introduction to Algorithms (Lecture 1)</strong>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.3rem;">
+          Prof. Erik Demaine introduces algorithmic thinking, asymptotic bounds, and peak finding using binary halving.
+        </p>
+        <div style="margin-top: 0.5rem;">
+          <a href="https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/" target="_blank" rel="noreferrer">Open MIT 6.006 Courseware &rarr;</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <strong>Competitive Programmer's Handbook (Chapter 2)</strong>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.3rem;">
+          Antti Laaksonen's definitive breakdown of time complexity, operation counts, and asymptotic dominance.
+        </p>
+        <div style="margin-top: 0.5rem;">
+          <a href="https://cses.fi/book/book.pdf" target="_blank" rel="noreferrer">Download Handbook PDF &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 8: Interactive Verification Quiz -->
+  <section style="margin-top: 2.5rem;">
+    <h2>8. Knowledge Check (Verify Storage Strength)</h2>
+    <p style="color: var(--text-secondary);">
+      Verify your grasp of asymptotic bounds, logarithmic scaling, and memory allocation.
+    </p>
+
+    <!-- Question 1 -->
+    <div class="quiz-card" id="q1">
+      <strong>Question 1: If an algorithm executes $5n^2 + 200n + 5000$ operations, what is its formal Big O?</strong>
+      <div class="quiz-options">
+        <button class="quiz-btn" onclick="checkAnswer(1, 0)">Quadratic complexity class O(n²).</button>
+        <button class="quiz-btn" onclick="checkAnswer(1, 1)">Linearithmic complexity class O(nlogn).</button>
+        <button class="quiz-btn" onclick="checkAnswer(1, 2)">Linear complexity order O(n).</button>
+      </div>
+      <div class="quiz-feedback" id="fb1"></div>
+    </div>
+
+    <!-- Question 2 -->
+    <div class="quiz-card" id="q2">
+      <strong>Question 2: Why does binary search on a sorted array of 1,000,000 items finish in ~20 steps?</strong>
+      <div class="quiz-options">
+        <button class="quiz-btn" onclick="checkAnswer(2, 0)">The CPU checks elements simultaneously.</button>
+        <button class="quiz-btn" onclick="checkAnswer(2, 1)">Each step cuts candidates in half.</button>
+        <button class="quiz-btn" onclick="checkAnswer(2, 2)">Sorted arrays skip memory caching.</button>
+      </div>
+      <div class="quiz-feedback" id="fb2"></div>
+    </div>
+
+    <!-- Question 3 -->
+    <div class="quiz-card" id="q3">
+      <strong>Question 3: In Kotlin or Java, what happens if you execute <code>str += char</code> inside an $n$-iteration loop?</strong>
+      <div class="quiz-options">
+        <button class="quiz-btn" onclick="checkAnswer(3, 0)">Runtime scales linearly as O(n).</button>
+        <button class="quiz-btn" onclick="checkAnswer(3, 1)">Runtime degrades quadratically to O(n²).</button>
+        <button class="quiz-btn" onclick="checkAnswer(3, 2)">Compiler optimizes it to O(1).</button>
+      </div>
+      <div class="quiz-feedback" id="fb3"></div>
+    </div>
+
+    <!-- Question 4 -->
+    <div class="quiz-card" id="q4">
+      <strong>Question 4: What type of memory is consumed by call depth during deep recursion?</strong>
+      <div class="quiz-options">
+        <button class="quiz-btn" onclick="checkAnswer(4, 0)">Allocates dynamically on system heap.</button>
+        <button class="quiz-btn" onclick="checkAnswer(4, 1)">Consumes call stack frame memory.</button>
+        <button class="quiz-btn" onclick="checkAnswer(4, 2)">Conserves zero auxiliary memory space.</button>
+      </div>
+      <div class="quiz-feedback" id="fb4"></div>
+    </div>
+  </section>
+
+  <!-- Need Help Reminder -->
+  <div class="callout" style="margin-top: 2.5rem;">
+    <div class="callout-title">Have a question?</div>
+    Ask your AI mentor in the chat window anytime! If asymptotic proofs, logarithmic calculations, or stack frames feel unclear, ask right away.
+  </div>
+
+  <footer>
+    <div><a href="0001-ram-and-brute-force.html">&larr; Lesson 01: RAM Mechanics</a> &bull; <a href="../master-plan.html">Master Plan</a></div>
+    <div>Next: <a href="0003-decoding-constraints.html">Lesson 03: Decoding Constraints &rarr;</a></div>
+  </footer>
+
+  <script>
+    function switchTab(evt, tabId) {
+      const container = evt.target.closest('.code-tabs');
+      container.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      container.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+      evt.target.classList.add('active');
+      container.querySelector('#' + tabId).classList.add('active');
+    }
+
+    function runHalving() {
+      const input = document.getElementById('halve-input');
+      let n = parseInt(input.value);
+      if (isNaN(n) || n < 2) n = 2;
+
+      const container = document.getElementById('halving-trace');
+      container.innerHTML = '';
+      let step = 0;
+      let curr = n;
+      const initial = n;
+
+      while (curr >= 1) {
+        step++;
+        const row = document.createElement('div');
+        row.className = 'trace-row';
+        const pct = Math.max(2, Math.round((curr / initial) * 100));
+        row.innerHTML = `
+          <span class="trace-step">Cut ${step}:</span>
+          <span style="min-width: 100px;">Remaining: <strong>${curr}</strong></span>
+          <div style="flex-grow: 1; background: var(--bg-secondary); border-radius: 4px;">
+            <div class="trace-bar" style="width: ${pct}%;"></div>
+          </div>
+        `;
+        container.appendChild(row);
+        if (curr === 1) break;
+        curr = Math.floor(curr / 2);
+      }
+    }
+
+    // Run on load
+    runHalving();
+
+    // Quiz evaluation
+    const correctAnswers = { 1: 0, 2: 1, 3: 1, 4: 1 };
+    const explanations = {
+      1: "Correct! We discard constants (5) and non-dominant terms (200n + 5000), leaving the dominant O(n²) term.",
+      2: "Correct! Each midpoint check cuts remaining possibilities by 50%, requiring only log₂(n) steps.",
+      3: "Correct! String immutability forces a full copy on every concatenation, causing 1+2+...+n = O(n²) time.",
+      4: "Correct! Each recursive invocation pushes a stack frame onto the Call Stack, consuming O(depth) memory."
+    };
+
+    function checkAnswer(qNum, selectedIdx) {
+      const card = document.getElementById('q' + qNum);
+      const buttons = card.querySelectorAll('.quiz-btn');
+      const fb = document.getElementById('fb' + qNum);
+      const isCorrect = selectedIdx === correctAnswers[qNum];
+
+      buttons.forEach((btn, i) => {
+        btn.classList.remove('correct', 'incorrect');
+        if (i === correctAnswers[qNum]) {
+          btn.classList.add('correct');
+        } else if (i === selectedIdx) {
+          btn.classList.add('incorrect');
+        }
+      });
+
+      fb.style.display = 'block';
+      if (isCorrect) {
+        fb.innerHTML = `<span style="color: var(--success); font-weight: 600;">&check; ${explanations[qNum]}</span>`;
+      } else {
+        fb.innerHTML = `<span style="color: #ef4444; font-weight: 600;">&cross; Incorrect.</span> ${explanations[qNum]}`;
+      }
+    }
+  </script>
+</body>
+</html>

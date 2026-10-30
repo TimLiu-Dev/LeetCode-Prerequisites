@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 01: RAM Mechanics, Brute Force & Algorithmic Bottlenecks (Deep CS Edition)</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .meta-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      font-family: var(--font-sans);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+    .deep-callout {
+      border-left: 4px solid #8b5cf6;
+      background: rgba(139, 92, 246, 0.08);
+      padding: 1rem 1.25rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1.5rem 0;
+      font-family: var(--font-sans);
+    }
+    .deep-callout-title {
+      font-weight: 700;
+      color: #7c3aed;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .ram-simulator, .hash-simulator {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      font-family: var(--font-sans);
+    }
+    .ram-cells, .hash-buckets {
+      display: flex;
+      gap: 6px;
+      margin: 1rem 0;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+    .ram-cell, .hash-bucket {
+      flex: 1;
+      min-width: 90px;
+      background: var(--bg-card);
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 0.5rem;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+    .ram-cell.highlight, .hash-bucket.highlight {
+      border-color: var(--accent);
+      background: var(--accent-light);
+      transform: translateY(-2px);
+    }
+    .cell-addr, .bucket-id {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .cell-val, .bucket-content {
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 0.25rem 0;
+    }
+    .cell-idx {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+    .sim-controls {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    .sim-input {
+      padding: 0.4rem 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      border: 1px solid var(--border-strong);
+      border-radius: 6px;
+      background: var(--bg-card);
+      color: var(--text-primary);
+      width: 120px;
+    }
+    .sim-calc {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      background: var(--bg-card);
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .quiz-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      margin: 1.25rem 0;
+    }
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-top: 0.75rem;
+    }
+    .quiz-btn {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-secondary);
+      font-family: var(--font-sans);
+      font-size: 0.92rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .quiz-btn:hover {
+      border-color: var(--accent);
+    }
+    .quiz-btn.correct {
+      background: var(--success-bg);
+      border-color: var(--success);
+      color: var(--success);
+      font-weight: 600;
+    }
+    .quiz-btn.incorrect {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+    .quiz-feedback {
+      margin-top: 0.75rem;
+      font-family: var(--font-sans);
+      font-size: 0.88rem;
+      display: none;
+    }
+    .diagram-box {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin: 1.5rem 0;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="meta-bar">
+    <div><a href="../master-plan.html">&larr; Master Curriculum</a> &bull; Lesson 01 of 05</div>
+    <div>Deep CS Edition &bull; Rigorous Ground Zero</div>
+  </div>
+
+  <header>
+    <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+      <span class="badge primary">Lesson 01</span>
+      <span class="badge success">Deep CS Edition</span>
+      <span class="badge">Hardware to Algorithms</span>
+    </div>
+    <h1>RAM Mechanics, Brute Force & Algorithmic Bottlenecks</h1>
+    <p style="font-size: 1.15rem; color: var(--text-secondary); margin-top: 0.5rem;">
+      Deconstructing the physical computer: CPU buses, RAM address arithmetic, the exact math of $O(n^2)$ nested loops, and how Hash Maps eliminate bottlenecks via bucket arrays and hashing modulo math.
+    </p>
+  </header>
+
+  <hr style="border: none; border-top: 1px solid var(--border); margin: 2rem 0;">
+
+  <!-- Section 1: The Von Neumann Architecture & Memory Hierarchy -->
+  <section>
+    <h2>1. The Physical Machine: Von Neumann Architecture</h2>
+    <p>
+      Before analyzing a single algorithm, we must understand the physical stage where code executes. Every modern computer follows the <strong>Von Neumann Architecture</strong>, consisting of three core physical subsystems:
+    </p>
+
+    <div class="diagram-box">
+┌────────────────────────────────────────────────────────┐
+│                      CENTRAL PROCESSING UNIT (CPU)     │
+│  ┌───────────────────────┐   ┌───────────────────────┐ │
+│  │ Registers (RAX, RBX)  │   │  Arithmetic Logic     │ │
+│  │ ~1 clock cycle        │   │  Unit (ALU: +, -, *)  │ │
+│  └───────────────────────┘   └───────────────────────┘ │
+│  ┌───────────────────────────────────────────────────┐ │
+│  │ L1 / L2 Cache (SRAM: ~4 to 12 clock cycles)       │ │
+│  └───────────────────────────────────────────────────┘ │
+└───────────────────────────▲────────────────────────────┘
+                            │ System Memory Bus
+                            ▼ (Data Lines & Address Lines)
+┌────────────────────────────────────────────────────────┐
+│ RANDOM ACCESS MEMORY (RAM / DRAM: ~100-200 cycles)     │
+│ Address 0x00000000 ─── to ─── Address 0xFFFFFFFF       │
+└────────────────────────────────────────────────────────┘
+    </div>
+
+    <p>
+      <strong>Why this matters for algorithms:</strong><br>
+      The ALU inside your CPU performs math operations in <strong>1 clock cycle</strong> (a fraction of a nanosecond on a 3GHz processor). However, fetching data from physical <strong>RAM across the System Bus</strong> takes <strong>100 to 200 clock cycles</strong>.
+    </p>
+    <p>
+      An algorithm is slow not because basic arithmetic takes time, but because the CPU spends millions of cycles waiting for data to travel across the memory bus from RAM.
+    </p>
+  </section>
+
+  <!-- Section 2: Contiguous Arrays & Pointer Math -->
+  <section style="margin-top: 2.5rem;">
+    <h2>2. RAM Mechanics: Why Array Indexing is Physical Arithmetic</h2>
+    <p>
+      Random Access Memory (RAM) is physically wired as an unbroken linear sequence of byte-addressable cells. Every byte has an exact numeric coordinate (its <strong>memory address</strong>), typically written in hexadecimal.
+    </p>
+    <p>
+      When you allocate a 4-element integer array (e.g. <code>intArrayOf(2, 7, 11, 15)</code> in Kotlin):
+    </p>
+    <ul>
+      <li>On modern 32/64-bit architectures, a standard integer occupies <strong>4 bytes</strong> (32 bits).</li>
+      <li>The Operating System reserves a single <strong>unbroken, contiguous block</strong> of $4 \times 4 = 16\text{ bytes}$ in RAM.</li>
+      <li>The variable <code>nums</code> holds only one single number: the <strong>Base Memory Address</strong> of index 0 (e.g., <code>0x1000</code>).</li>
+    </ul>
+
+    <!-- Interactive RAM Simulator -->
+    <div class="ram-simulator">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <strong style="font-size: 1rem;">Interactive RAM Pointer Arithmetic Simulator</strong>
+        <span class="badge">Formula: Target = Base + (Index &times; 4)</span>
+      </div>
+      <p style="font-size: 0.88rem; color: var(--text-secondary); margin-top: 0.4rem;">
+        Click any memory slot or change the index. Observe that the CPU calculates the exact hardware address using pure arithmetic:
+      </p>
+
+      <div class="ram-cells">
+        <div class="ram-cell highlight" id="cell-0" onclick="selectCell(0)">
+          <div class="cell-addr">0x1000</div>
+          <div class="cell-val">2</div>
+          <div class="cell-idx">arr[0]</div>
+        </div>
+        <div class="ram-cell" id="cell-1" onclick="selectCell(1)">
+          <div class="cell-addr">0x1004</div>
+          <div class="cell-val">7</div>
+          <div class="cell-idx">arr[1]</div>
+        </div>
+        <div class="ram-cell" id="cell-2" onclick="selectCell(2)">
+          <div class="cell-addr">0x1008</div>
+          <div class="cell-val">11</div>
+          <div class="cell-idx">arr[2]</div>
+        </div>
+        <div class="ram-cell" id="cell-3" onclick="selectCell(3)">
+          <div class="cell-addr">0x100C</div>
+          <div class="cell-val">15</div>
+          <div class="cell-idx">arr[3]</div>
+        </div>
+      </div>
+
+      <div class="sim-controls">
+        <span>Target Index:</span>
+        <input type="number" id="sim-index" class="sim-input" min="0" max="3" value="0" onchange="onInputChange()">
+        <span class="sim-calc" id="sim-math">Address = 0x1000 + (0 &times; 4) = 0x1000</span>
+      </div>
+    </div>
+
+    <div class="deep-callout">
+      <div class="deep-callout-title">Deep CS Insight: The O(1) Mechanical Proof</div>
+      When you write <code>val x = arr[2]</code> in Kotlin, what assembly instruction does the CPU run?<br>
+      It runs: <code>MOV EAX, [EBX + 2 * 4]</code> (where <code>EBX</code> holds base address <code>0x1000</code>).<br>
+      The CPU's addressing unit performs one multiplication (<code>2 * 4 = 8</code>) and one addition (<code>0x1000 + 8 = 0x1008</code>), then asserts address <code>0x1008</code> on the bus. This takes <strong>1 clock cycle</strong>. Whether the array has 4 items or 4,000,000 items, the equation is identical. Hence: $\mathbf{O(1)}$.
+    </div>
+
+    <!-- ELI5: RAM & Arrays -->
+    <div class="eli5-box">
+      <div class="eli5-title">🧸 ELI5: Street Numbers vs. Knocking on Every Door</div>
+      <p style="margin-bottom: 0.5rem;">
+        <strong>Array Indexing ($O(1)$) — The Pizza Delivery:</strong><br>
+        Imagine a street where houses are numbered in perfect order: House #0, House #1, House #2, House #3... If the pizza order says <em>"Deliver to House #2,"</em> the driver doesn't visit House #0 or House #1. They drive directly to House #2 because they know exactly where it sits on the street. In computer terms, that is <strong>$O(1)$ constant time</strong>: zero searching, instant arrival.
+      </p>
+      <p style="margin-bottom: 0;">
+        <strong>Array Searching ($O(n)$) — Finding a Friend Named Bob:</strong><br>
+        Now imagine you are looking for your friend <em>Bob</em>, but houses only show numbers on their doors, not names. You have no idea where Bob lives. You have no choice: you must knock on House #0: <em>"Are you Bob?"</em> (No), then walk to House #1: <em>"Are you Bob?"</em> (No), then House #2... door by door until you find him. If there are 1,000 houses, you might have to knock on all 1,000 doors. That is a <strong>linear scan ($O(n)$)</strong>!
+      </p>
+    </div>
+
+    <div class="callout warning">
+      <div class="callout-title">The Value Asymmetry: Why Searching Unsorted Memory is O(n)</div>
+      If you instead ask: <em>"At what index is the value 11 stored?"</em>, the CPU has no inverse mathematical formula. Values are not ordered by coordinate. The CPU has no choice but to perform a <strong>Linear Scan</strong>:
+      <ol style="margin-top: 0.5rem; padding-left: 1.2rem;">
+        <li>Read address <code>0x1000</code> &rarr; compares <code>2 == 11</code> (False).</li>
+        <li>Read address <code>0x1004</code> &rarr; compares <code>7 == 11</code> (False).</li>
+        <li>Read address <code>0x1008</code> &rarr; compares <code>11 == 11</code> (True!).</li>
+      </ol>
+      For an array of size $n$, if the item is at the end (or not present), the CPU must execute $n$ separate bus reads and comparisons: $\mathbf{O(n)}$.
+    </div>
+  </section>
+
+  <!-- Section 3: Brute Force & Loop Math -->
+  <section style="margin-top: 2.5rem;">
+    <h2>3. Brute Force: The Full Mathematical Derivation</h2>
+    <p>
+      In technical interviews, <strong>Brute Force</strong> means an exhaustive traversal of the entire combinatorial search space.
+    </p>
+    <p>
+      Let's analyze the classic problem: <strong>Two Sum</strong>.<br>
+      <em>Given an array of integers <code>nums</code> and an integer <code>target</code>, return the indices of the two numbers that sum to <code>target</code>.</em>
+    </p>
+
+    <h3>The Exhaustive Search Space</h3>
+    <p>
+      To find two numbers without knowing their positions, the naive strategy tests every unique pair $(i, j)$ where $j > i$.
+    </p>
+
+    <!-- State Trace Table -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Outer Loop ($i$)</th>
+            <th>Inner Loop ($j$)</th>
+            <th>Candidate Pair Checked</th>
+            <th>Sum Tested vs. Target (9)</th>
+            <th>Operations</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>$i = 0$ (val: 2)</td>
+            <td>$j = 1$ (val: 7)</td>
+            <td>$(nums[0], nums[1]) = (2, 7)$</td>
+            <td>$2 + 7 = 9 \implies \text{Match!}$</td>
+            <td>1 comparison</td>
+          </tr>
+          <tr>
+            <td colspan="5" style="background: var(--bg-secondary); font-style: italic;">
+              Suppose target was 26 (worst case: match at the very end):
+            </td>
+          </tr>
+          <tr>
+            <td>$i = 0$ (val: 2)</td>
+            <td>$j = 1, 2, 3$</td>
+            <td>$(2, 7), (2, 11), (2, 15)$</td>
+            <td>Sums: $9, 13, 17 \ne 26$</td>
+            <td>$n - 1$ comparisons (3 ops)</td>
+          </tr>
+          <tr>
+            <td>$i = 1$ (val: 7)</td>
+            <td>$j = 2, 3$</td>
+            <td>$(7, 11), (7, 15)$</td>
+            <td>Sums: $18, 22 \ne 26$</td>
+            <td>$n - 2$ comparisons (2 ops)</td>
+          </tr>
+          <tr>
+            <td>$i = 2$ (val: 11)</td>
+            <td>$j = 3$</td>
+            <td>$(11, 15)$</td>
+            <td>Sum: $26 == 26 \implies \text{Match!}$</td>
+            <td>$n - 3$ comparisons (1 op)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>The Gauss Summation Formula</h3>
+    <p>
+      The total number of comparisons across all iterations is the sum of integers from $1$ to $n-1$:
+    </p>
+    <div style="text-align: center; font-size: 1.15rem; margin: 1.25rem 0; font-family: var(--font-serif);">
+      $$\text{Total Comparisons} = (n - 1) + (n - 2) + \dots + 2 + 1 = \sum_{k=1}^{n-1} k = \frac{n(n - 1)}{2} = \frac{n^2 - n}{2}$$
+    </div>
+    <p>
+      In asymptotic analysis (which we dissect in Lesson 02), we discard lower-order terms ($-n$) and constant factors ($\frac{1}{2}$). The dominant term is $n^2$:
+    </p>
+    <div style="text-align: center; font-size: 1.25rem; font-weight: 700; color: var(--accent); margin: 1rem 0;">
+      Time Complexity: &Omicron;(n&sup2;)
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">The Real-World Constraint Collision</div>
+      If LeetCode specifies $n = 10^5$ (100,000 items):
+      $$\frac{(10^5)^2}{2} = \frac{10^{10}}{2} = 5,000,000,000 \text{ operations}$$
+      At $10^7$ operations per second, this takes <strong>500 seconds (over 8 minutes)</strong>. LeetCode kills your process at 2.0 seconds. <strong>Result: Time Limit Exceeded (TLE).</strong>
+    </div>
+
+    <!-- ELI5: Brute Force & Bottleneck -->
+    <div class="eli5-box">
+      <div class="eli5-title">🧸 ELI5: The Giant Laundry Basket</div>
+      <p style="margin-bottom: 0.4rem;">
+        <strong>Brute Force:</strong> Imagine you dump 100 mismatched socks into a giant laundry pile. To find a pair, you pick up Sock #1, and then examine all 99 other socks one by one. If it doesn't match, you pick up Sock #2 and examine all 98 remaining socks. You are testing every single pair. For 100 socks, you do roughly 5,000 comparisons!
+      </p>
+      <p style="margin-bottom: 0;">
+        <strong>The Bottleneck:</strong> The bottleneck is not picking up a sock. The bottleneck is that for <em>every single sock</em>, you re-dig through the entire basket from top to bottom.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 4: Deconstructing the Bottleneck -->
+  <section style="margin-top: 2.5rem;">
+    <h2>4. Pinpointing the Computational Bottleneck</h2>
+    <p>
+      An <strong>algorithmic bottleneck</strong> is the localized segment of an algorithm that performs repeated, redundant work and dominates total execution time.
+    </p>
+    <p>
+      Look closely at the inner loop of the brute-force approach:
+    </p>
+    <pre><code>for (j in i + 1 until nums.size) {
+    if (nums[j] == target - nums[i]) { ... }
+}</code></pre>
+    <p>
+      What is that inner loop actually doing? It is asking: <em>"Does the complement $(target - nums[i])$ exist in the remainder of the array?"</em>
+    </p>
+    <p>
+      Because <code>nums</code> is an unsorted array, the inner loop must perform an <strong>$O(n)$ linear scan</strong>. And it performs this $O(n)$ scan $n$ separate times:
+    </p>
+    <div style="text-align: center; font-family: var(--font-mono); font-size: 1rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px; margin: 1rem 0;">
+      [Outer Loop: Runs n times] &times; [Inner Linear Scan: Takes O(n)] = O(n&sup2;) Total Runtime
+    </div>
+    <p>
+      <strong>The Bottleneck is the linear scan.</strong> If we can find the complement without scanning, the entire $n^2$ runtime collapses.
+    </p>
+  </section>
+
+  <!-- Section 5: Demystifying the Hash Map -->
+  <section style="margin-top: 2.5rem;">
+    <h2>5. Demystifying the Hash Map: How O(1) Value Lookup Works Physically</h2>
+    <p>
+      Beginners are often told: <em>"A Hash Map looks up values in $O(1)$ time."</em> But how? How can any data structure find a value without scanning through it?
+    </p>
+    <p>
+      There is no magic in computer science. A Hash Map achieves $O(1)$ lookup by turning a <strong>value lookup into an array index lookup</strong> using pure mathematics.
+    </p>
+
+    <h3>The 3 Physical Components of a Hash Map</h3>
+    <ol style="margin-left: 1.2rem;">
+      <li>
+        <strong>The Underlying Bucket Array:</strong> Inside a Hash Map (like Java/Kotlin's <code>HashMap</code>), there is simply a standard contiguous array of memory slots called <strong>Buckets</strong> (default capacity is typically 16).
+      </li>
+      <li>
+        <strong>The Hash Function:</strong> A deterministic mathematical algorithm that converts any key into a 32-bit integer (the <code>hashCode</code>). For example, <code>hash(7) = 7</code>.
+      </li>
+      <li>
+        <strong>The Modulo Compression:</strong> To map that integer into the bounds of the bucket array, the CPU performs a modulo operation:
+        <div style="text-align: center; margin: 0.75rem 0; font-family: var(--font-mono); font-size: 0.95rem;">
+          Bucket Index = abs(hashCode) % ArrayCapacity
+        </div>
+      </li>
+    </ol>
+
+    <!-- Interactive Hash Map Simulator -->
+    <div class="hash-simulator">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <strong style="font-size: 1rem;">Interactive Hash Map Bucket Simulator (Capacity: 8)</strong>
+        <span class="badge">Formula: Index = abs(Key) % 8</span>
+      </div>
+      <p style="font-size: 0.88rem; color: var(--text-secondary); margin-top: 0.4rem;">
+        Type an integer key to see how the hash function computes the exact bucket index instantaneously:
+      </p>
+
+      <div class="hash-buckets">
+        <div class="hash-bucket" id="bucket-0"><div class="bucket-id">Bucket [0]</div><div class="bucket-content">-</div></div>
+        <div class="hash-bucket" id="bucket-1"><div class="bucket-id">Bucket [1]</div><div class="bucket-content">-</div></div>
+        <div class="hash-bucket highlight" id="bucket-2"><div class="bucket-id">Bucket [2]</div><div class="bucket-content">2 &rarr; idx 0</div></div>
+        <div class="hash-bucket" id="bucket-3"><div class="bucket-id">Bucket [3]</div><div class="bucket-content">-</div></div>
+        <div class="hash-bucket" id="bucket-4"><div class="bucket-id">Bucket [4]</div><div class="bucket-content">-</div></div>
+        <div class="hash-bucket" id="bucket-5"><div class="bucket-id">Bucket [5]</div><div class="bucket-content">-</div></div>
+        <div class="hash-bucket" id="bucket-6"><div class="bucket-id">Bucket [6]</div><div class="bucket-content">-</div></div>
+        <div class="hash-bucket" id="bucket-7"><div class="bucket-id">Bucket [7]</div><div class="bucket-content">7 &rarr; idx 1</div></div>
+      </div>
+
+      <div class="sim-controls">
+        <span>Enter Key:</span>
+        <input type="number" id="hash-key-input" class="sim-input" value="11" onchange="simulateHash()">
+        <button class="tab-btn active" style="padding: 0.4rem 0.8rem; border-radius: 6px; background: var(--accent); color: white;" onclick="simulateHash()">Compute Bucket</button>
+        <span class="sim-calc" id="hash-math">11 % 8 = Bucket [3]</span>
+      </div>
+    </div>
+
+    <h3>What Happens During a Hash Collision?</h3>
+    <p>
+      What if we insert the number <code>19</code>? Because $19 \pmod 8 = 3$, it lands in <strong>Bucket [3]</strong>, which already holds <code>11</code>! This is a <strong>Hash Collision</strong>.
+    </p>
+    <p>
+      In Java and Kotlin, collisions are handled via <strong>Separate Chaining</strong>:
+    </p>
+    <ul>
+      <li>Each bucket slot does not hold just one value; it holds the head pointer of a tiny <strong>Linked List</strong> (or a balanced Red-Black Tree if the bucket has $> 8$ collisions).</li>
+      <li>When you look up 19, the CPU jumps straight to Bucket 3 in $O(1)$ time, then traverses the tiny chain: <code>11 &rarr; 19</code>.</li>
+    </ul>
+
+    <div class="deep-callout">
+      <div class="deep-callout-title">The Interview Trap: Average vs. Worst-Case Space & Time</div>
+      <strong>Average Case:</strong> Assuming a good hash function with a load factor $\le 0.75$, keys distribute evenly across buckets. Each bucket contains 1 or 2 items on average. Lookup is <strong>O(1)</strong>.<br>
+      <strong>Worst Case:</strong> If an adversarial input causes all $n$ keys to produce the exact same bucket index, all $n$ items land in a single linked list. Lookup degrades to <strong>O(n)</strong>! In interviews, always state: <em>"Hash map lookups are O(1) on average."</em>
+    </div>
+
+    <!-- ELI5: Hash Map & Coat Check -->
+    <div class="eli5-box">
+      <div class="eli5-title">🧸 ELI5: The VIP Coat Check & Ticket System</div>
+      <p style="margin-bottom: 0.5rem;">
+        <strong>The Problem:</strong> Imagine a wedding with 1,000 guests who all threw their coats into one massive pile. At the end of the night, if you want your black coat, the attendant must rummage through the pile one coat at a time ($O(n)$ search). That's slow and frustrating.
+      </p>
+      <p style="margin-bottom: 0.5rem;">
+        <strong>The Hash Map Solution:</strong> Instead of a pile, the venue builds a wall with 100 numbered hooks (the <em>bucket array</em>). When you arrive, the attendant runs a formula on your phone number to give you a ticket: <code>Phone % 100 = Hook #42</code> (the <em>hash function</em>). They hang your coat on Hook #42.
+      </p>
+      <p style="margin-bottom: 0.5rem;">
+        <strong>Instant Retrieval ($O(1)$):</strong> When you leave, you don't describe your coat. You just hand them Ticket #42. The attendant walks directly to Hook #42 and grabs it instantly! Zero rummaging.
+      </p>
+      <p style="margin-bottom: 0;">
+        <strong>What is a Collision?</strong> If another guest also gets Hook #42, the attendant just clips the second jacket onto the same hook using an extra hanger (a <em>linked list chain</em>). Even with a collision, looking at 2 jackets on Hook #42 is thousands of times faster than searching a 1,000-coat pile!
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 6: The Fundamental Tradeoff -->
+  <section style="margin-top: 2.5rem;">
+    <h2>6. The Universal Tradeoff: Trading Space for Time</h2>
+    <p>
+      Computer science problem solving is founded on a central economic reality: <strong>Time and Memory are interchangeable currencies.</strong>
+    </p>
+    <p>
+      In Two Sum:
+    </p>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Strategy</th>
+            <th>Time Complexity</th>
+            <th>Auxiliary Space Complexity</th>
+            <th>The Tradeoff Mechanism</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Brute Force</strong></td>
+            <td>$\mathcal{O}(n^2)$ (Slow)</td>
+            <td>$\mathbf{\mathcal{O}(1)}$ (Zero extra memory)</td>
+            <td>Conserves memory by repeatedly re-scanning the array across the bus.</td>
+          </tr>
+          <tr>
+            <td><strong>Optimal (Hash Map)</strong></td>
+            <td>$\mathbf{\mathcal{O}(n)}$ (Fast)</td>
+            <td>$\mathcal{O}(n)$ (Heap memory allocated)</td>
+            <td>Allocates an auxiliary Hash Map on the Heap to record seen values, eliminating redundant scans.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      By spending $O(n)$ auxiliary space, we convert an $O(n)$ search into an $O(1)$ average calculation:
+    </p>
+    <div style="text-align: center; font-family: var(--font-mono); font-size: 1.05rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 8px;">
+      [n elements visited] &times; [O(1) Hash Map lookup] = &Omicron;(n) Total Time
+    </div>
+  </section>
+
+  <!-- Section 7: Polyglot Implementations -->
+  <section style="margin-top: 2.5rem;">
+    <h2>7. Annotated Polyglot Code Implementations</h2>
+
+    <div class="code-tabs">
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab(event, 'code-kotlin')">Kotlin (Primary)</button>
+        <button class="tab-btn" onclick="switchTab(event, 'code-python')">Python</button>
+        <button class="tab-btn" onclick="switchTab(event, 'code-java')">Java</button>
+      </div>
+
+      <div id="code-kotlin" class="tab-pane active">
+<pre><code>class Solution {
+    // 1. NAIVE BRUTE FORCE
+    // Time: O(n²) | Auxiliary Space: O(1)
+    fun twoSumBruteForce(nums: IntArray, target: Int): IntArray {
+        val n = nums.size
+        for (i in 0 until n) {
+            for (j in i + 1 until n) {
+                // Costs 1 comparison per iteration across n(n-1)/2 pairs
+                if (nums[i] + nums[j] == target) {
+                    return intArrayOf(i, j)
+                }
+            }
+        }
+        return intArrayOf()
+    }
+
+    // 2. OPTIMAL ONE-PASS HASH MAP
+    // Time: O(n) average | Auxiliary Space: O(n)
+    fun twoSumOptimal(nums: IntArray, target: Int): IntArray {
+        // Heap allocation: stores value -> index
+        val seen = HashMap&lt;Int, Int&gt;()
+
+        for (i in nums.indices) {
+            val complement = target - nums[i]
+            
+            // O(1) average lookup via bucket modulo calculation
+            if (seen.containsKey(complement)) {
+                return intArrayOf(seen[complement]!!, i)
+            }
+            
+            // O(1) insertion into bucket array
+            seen[nums[i]] = i
+        }
+        return intArrayOf()
+    }
+}</code></pre>
+      </div>
+
+      <div id="code-python" class="tab-pane">
+<pre><code>class Solution:
+    # 1. NAIVE BRUTE FORCE
+    # Time: O(n²) | Auxiliary Space: O(1)
+    def twoSumBruteForce(self, nums: list[int], target: int) -> list[int]:
+        n = len(nums)
+        for i in range(n):
+            for j in range(i + 1, n):
+                if nums[i] + nums[j] == target:
+                    return [i, j]
+        return []
+
+    # 2. OPTIMAL ONE-PASS HASH MAP (dict)
+    # Time: O(n) average | Auxiliary Space: O(n)
+    def twoSumOptimal(self, nums: list[int], target: int) -> list[int]:
+        seen = {}  # Python dict uses an open-addressing hash table internally
+        for i, num in enumerate(nums):
+            complement = target - num
+            if complement in seen:
+                return [seen[complement], i]
+            seen[num] = i
+        return []</code></pre>
+      </div>
+
+      <div id="code-java" class="tab-pane">
+<pre><code>import java.util.HashMap;
+import java.util.Map;
+
+class Solution {
+    // 1. NAIVE BRUTE FORCE
+    // Time: O(n²) | Auxiliary Space: O(1)
+    public int[] twoSumBruteForce(int[] nums, int target) {
+        int n = nums.length;
+        for (int i = 0; i &lt; n; i++) {
+            for (int j = i + 1; j &lt; n; j++) {
+                if (nums[i] + nums[j] == target) {
+                    return new int[] { i, j };
+                }
+            }
+        }
+        return new int[0];
+    }
+
+    // 2. OPTIMAL ONE-PASS HASH MAP
+    // Time: O(n) average | Auxiliary Space: O(n)
+    public int[] twoSumOptimal(int[] nums, int target) {
+        Map&lt;Integer, Integer&gt; seen = new HashMap&lt;&gt;();
+        for (int i = 0; i &lt; nums.length; i++) {
+            int complement = target - nums[i];
+            if (seen.containsKey(complement)) {
+                return new int[] { seen.get(complement), i };
+            }
+            seen.put(nums[i], i);
+        }
+        return new int[0];
+    }
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 8: The Verbal Interview Script -->
+  <section style="margin-top: 2.5rem;">
+    <h2>8. The Verbal Interview Script: Senior-Level Execution</h2>
+    <p>
+      In a real interview, you never stay silent and never jump straight to code. Deliver this exact 30-second cadence:
+    </p>
+
+    <div class="callout success">
+      <div class="callout-title">Verbal Script Cadence (Word for Word)</div>
+      <p style="font-style: italic; margin-bottom: 0.5rem;">
+        <strong>1. State Baseline:</strong> "The naive baseline is an exhaustive nested search checking all pairs in $\mathcal{O}(n^2)$ time and $\mathcal{O}(1)$ auxiliary space."
+      </p>
+      <p style="font-style: italic; margin-bottom: 0.5rem;">
+        <strong>2. Pinpoint Bottleneck:</strong> "The bottleneck is the inner loop repeatedly scanning the array across memory to locate the complement."
+      </p>
+      <p style="font-style: italic; margin-bottom: 0.5rem;">
+        <strong>3. Propose Tradeoff:</strong> "We can trade $\mathcal{O}(n)$ auxiliary memory using a hash map to get $\mathcal{O}(1)$ average lookups for the complement, dropping total time complexity to $\mathcal{O}(n)$."
+      </p>
+      <p style="font-style: italic; margin-bottom: 0;">
+        <strong>4. Secure Consensus:</strong> "Does that optimal approach sound like the right direction to implement?"
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 9: Academic Sources -->
+  <section style="margin-top: 2.5rem;">
+    <h2>9. Curated Academic Primary Sources</h2>
+    <p>
+      To reinforce these machine-level concepts from accredited university curricula:
+    </p>
+    <div class="grid-2">
+      <div class="card">
+        <strong>CS50x: Lecture 4 – Memory (Harvard)</strong>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.3rem;">
+          Prof. David J. Malan's world-renowned demonstration of physical memory addresses, pointer arithmetic, and heap allocation.
+        </p>
+        <div style="margin-top: 0.5rem;">
+          <a href="https://cs50.harvard.edu/x/weeks/4/" target="_blank" rel="noreferrer">Open CS50 Week 4 Notes &rarr;</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <strong>CS50x: Lecture 5 – Data Structures (Harvard)</strong>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.3rem;">
+          Detailed whiteboard and physical stage breakdown of hash tables, hash codes, bucket arrays, and linked-list collisions.
+        </p>
+        <div style="margin-top: 0.5rem;">
+          <a href="https://cs50.harvard.edu/x/weeks/5/" target="_blank" rel="noreferrer">Open CS50 Week 5 Notes &rarr;</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 10: Interactive Verification Quiz -->
+  <section style="margin-top: 2.5rem;">
+    <h2>10. Deep CS Knowledge Verification</h2>
+    <p style="color: var(--text-secondary);">
+      Verify your storage strength across hardware mechanics and algorithmic tradeoffs.
+    </p>
+
+    <!-- Question 1 -->
+    <div class="quiz-card" id="q1">
+      <strong>Question 1: Why is indexing an array <code>arr[i]</code> guaranteed to be $O(1)$ constant time?</strong>
+      <div class="quiz-options">
+        <button class="quiz-btn" onclick="checkAnswer(1, 0)">The CPU executes an inner linear scan.</button>
+        <button class="quiz-btn" onclick="checkAnswer(1, 1)">The CPU calculates physical address directly.</button>
+        <button class="quiz-btn" onclick="checkAnswer(1, 2)">The CPU checks memory sequentially from zero.</button>
+      </div>
+      <div class="quiz-feedback" id="fb1"></div>
+    </div>
+
+    <!-- Question 2 -->
+    <div class="quiz-card" id="q2">
+      <strong>Question 2: In Two Sum, what is the exact computational bottleneck of the brute-force approach?</strong>
+      <div class="quiz-options">
+        <button class="quiz-btn" onclick="checkAnswer(2, 0)">Allocating excess memory on the heap.</button>
+        <button class="quiz-btn" onclick="checkAnswer(2, 1)">Repeatedly scanning memory for the complement.</button>
+        <button class="quiz-btn" onclick="checkAnswer(2, 2)">Checking boundary conditions on the array.</button>
+      </div>
+      <div class="quiz-feedback" id="fb2"></div>
+    </div>
+
+    <!-- Question 3 -->
+    <div class="quiz-card" id="q3">
+      <strong>Question 3: How does a Hash Map achieve $O(1)$ average lookup time without scanning?</strong>
+      <div class="quiz-options">
+        <button class="quiz-btn" onclick="checkAnswer(3, 0)">It searches all entries with pointers.</button>
+        <button class="quiz-btn" onclick="checkAnswer(3, 1)">It computes a bucket index mathematically.</button>
+        <button class="quiz-btn" onclick="checkAnswer(3, 2)">It sorts elements continuously in memory.</button>
+      </div>
+      <div class="quiz-feedback" id="fb3"></div>
+    </div>
+
+    <!-- Question 4 -->
+    <div class="quiz-card" id="q4">
+      <strong>Question 4: What happens in physical memory when two different keys produce the same bucket index?</strong>
+      <div class="quiz-options">
+        <button class="quiz-btn" onclick="checkAnswer(4, 0)">The hash map overwrites existing values.</button>
+        <button class="quiz-btn" onclick="checkAnswer(4, 1)">The bucket stores items via chaining.</button>
+        <button class="quiz-btn" onclick="checkAnswer(4, 2)">The process crashes with memory errors.</button>
+      </div>
+      <div class="quiz-feedback" id="fb4"></div>
+    </div>
+  </section>
+
+  <!-- Need Help Reminder -->
+  <div class="callout" style="margin-top: 2.5rem;">
+    <div class="callout-title">Have a question?</div>
+    Ask your AI mentor in the chat window anytime! If pointer math, modulo bucket indexing, or memory buses feel unclear, ask right away.
+  </div>
+
+  <footer>
+    <div><a href="../master-plan.html">&larr; Return to Master Plan</a></div>
+    <div>Next: <a href="0002-big-o-and-logarithms.html">Lesson 02: Big O Deconstructed & The "Halving Game" &rarr;</a></div>
+  </footer>
+
+  <script>
+    // Tab switcher
+    function switchTab(evt, tabId) {
+      const container = evt.target.closest('.code-tabs');
+      container.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      container.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+      evt.target.classList.add('active');
+      container.querySelector('#' + tabId).classList.add('active');
+    }
+
+    // RAM Simulator
+    const baseAddr = 0x1000;
+    function selectCell(idx) {
+      document.querySelectorAll('.ram-cell').forEach(c => c.classList.remove('highlight'));
+      const target = document.getElementById('cell-' + idx);
+      if (target) target.classList.add('highlight');
+      document.getElementById('sim-index').value = idx;
+      updateMath(idx);
+    }
+
+    function onInputChange() {
+      let val = parseInt(document.getElementById('sim-index').value);
+      if (isNaN(val) || val < 0) val = 0;
+      if (val > 3) val = 3;
+      selectCell(val);
+    }
+
+    function updateMath(idx) {
+      const addrHex = '0x' + (baseAddr + (idx * 4)).toString(16).toUpperCase();
+      document.getElementById('sim-math').innerText = `Address = 0x1000 + (${idx} × 4) = ${addrHex}`;
+    }
+
+    // Hash Map Simulator
+    function simulateHash() {
+      const input = document.getElementById('hash-key-input');
+      const val = parseInt(input.value);
+      if (isNaN(val)) return;
+
+      const capacity = 8;
+      const bucketIdx = Math.abs(val) % capacity;
+
+      document.querySelectorAll('.hash-bucket').forEach(b => b.classList.remove('highlight'));
+      const targetBucket = document.getElementById('bucket-' + bucketIdx);
+      if (targetBucket) {
+        targetBucket.classList.add('highlight');
+        targetBucket.querySelector('.bucket-content').innerText = `${val}`;
+      }
+
+      document.getElementById('hash-math').innerText = `abs(${val}) % ${capacity} = Bucket [${bucketIdx}]`;
+    }
+
+    // Quiz evaluation
+    const correctAnswers = { 1: 1, 2: 1, 3: 1, 4: 1 };
+    const explanations = {
+      1: "Correct! The CPU calculates physical address directly via `base + index * 4` in 1 clock cycle.",
+      2: "Correct! The inner linear scan forces O(n²) time. Replacing it with a hash map eliminates the bottleneck.",
+      3: "Correct! It converts the key into an integer and takes modulo capacity (`key % capacity`) to jump directly to a bucket slot.",
+      4: "Correct! Modern hash tables resolve collisions using separate chaining (linked list / red-black tree nodes in that bucket)."
+    };
+
+    function checkAnswer(qNum, selectedIdx) {
+      const card = document.getElementById('q' + qNum);
+      const buttons = card.querySelectorAll('.quiz-btn');
+      const fb = document.getElementById('fb' + qNum);
+      const isCorrect = selectedIdx === correctAnswers[qNum];
+
+      buttons.forEach((btn, i) => {
+        btn.classList.remove('correct', 'incorrect');
+        if (i === correctAnswers[qNum]) {
+          btn.classList.add('correct');
+        } else if (i === selectedIdx) {
+          btn.classList.add('incorrect');
+        }
+      });
+
+      fb.style.display = 'block';
+      if (isCorrect) {
+        fb.innerHTML = `<span style="color: var(--success); font-weight: 600;">&check; ${explanations[qNum]}</span>`;
+      } else {
+        fb.innerHTML = `<span style="color: #ef4444; font-weight: 600;">&cross; Incorrect.</span> ${explanations[qNum]}`;
+      }
+    }
+  </script>
+</body>
+</html>
